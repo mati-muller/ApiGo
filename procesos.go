@@ -7,18 +7,18 @@ import (
 )
 
 func SetupProcesosRoutes(r *gin.Engine) {
-	r.GET("/data", getData)
-	r.GET("/pendientes-encolado", getPendientesEncolado)
-	r.GET("/pendientes-emplacado", getPendientesEmplacado)
-	r.GET("/pendientes-troquelado", getPendientesTroquelado)
-	r.GET("/pendientes-calado", getPendientesCalado)
-	r.GET("/pendientes-pegado", getPendientesPegado)
-	r.GET("/pendientes-plizado", getPendientesPlizado)
-	r.GET("/pendientes-trozado", getPendientesTrozado)
-	r.GET("/pendientes-impresion", getPendientesImpresion)
-	r.GET("/pendientes-multiple", getPendientesMultiple)
-	r.GET("/pendientes-otro", getPendientesOtro)
-	r.GET("/nv", getNV)
+	r.GET("/procesos/data", getData)
+	r.GET("/procesos/pendientes-encolado", getPendientesEncolado)
+	r.GET("/procesos/pendientes-emplacado", getPendientesEmplacado)
+	r.GET("/procesos/pendientes-troquelado", getPendientesTroquelado)
+	r.GET("/procesos/pendientes-calado", getPendientesCalado)
+	r.GET("/procesos/pendientes-pegado", getPendientesPegado)
+	r.GET("/procesos/pendientes-plizado", getPendientesPlizado)
+	r.GET("/procesos/pendientes-trozado", getPendientesTrozado)
+	r.GET("/procesos/pendientes-impresion", getPendientesImpresion)
+	r.GET("/procesos/pendientes-multiple", getPendientesMultiple)
+	r.GET("/procesos/pendientes-otro", getPendientesOtro)
+	r.GET("/procesos/nv", getNV)
 }
 
 func queryDatabase(c *gin.Context, query string) {

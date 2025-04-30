@@ -33,9 +33,9 @@ func hashPassword(password string) (string, error) {
 }
 
 func SetupUserRoutes(r *gin.Engine) {
-	r.POST("/register", registerUser)
-	r.POST("/login", loginUser)
-	r.POST("/change-password", changePassword)
+	r.POST("/users/register", registerUser)
+	r.POST("/users/login", loginUser)
+	r.POST("/users/change-password", changePassword)
 }
 
 func registerUser(c *gin.Context) {
