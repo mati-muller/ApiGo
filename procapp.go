@@ -18,9 +18,9 @@ func init() {
 	}
 }
 
-func setupRoutes(r *gin.Engine) {
+func SetupRoutes(r *gin.Engine) {
 	// Use environment variables for database connection
-	db, err := sql.Open("sqlserver", "sqlserver://"+os.Getenv("SQL_USER")+":"+os.Getenv("SQL_PASSWORD")+"@"+os.Getenv("SQL_SERVER")+"?database="+os.Getenv("SQL_DATABASE2"))
+	db, err := sql.Open("sqlserver", "Server="+os.Getenv("SQL_SERVER")+"\\"+os.Getenv("SQL_INSTANCE")+";Database="+os.Getenv("SQL_DATABASE2")+";User Id="+os.Getenv("SQL_USER")+";Password="+os.Getenv("SQL_PASSWORD")+";Encrypt=disable")
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
@@ -74,8 +74,8 @@ func setupRoutes(r *gin.Engine) {
 	`))
 }
 
-func setupPostRoutes(r *gin.Engine) {
-	db, err := sql.Open("sqlserver", "sqlserver://"+os.Getenv("SQL_USER")+":"+os.Getenv("SQL_PASSWORD")+"@"+os.Getenv("SQL_SERVER")+"?database="+os.Getenv("SQL_DATABASE2"))
+func SetupPostRoutes(r *gin.Engine) {
+	db, err := sql.Open("sqlserver", "Server="+os.Getenv("SQL_SERVER")+"\\"+os.Getenv("SQL_INSTANCE")+";Database="+os.Getenv("SQL_DATABASE2")+";User Id="+os.Getenv("SQL_USER")+";Password="+os.Getenv("SQL_PASSWORD")+";Encrypt=disable")
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
@@ -208,20 +208,31 @@ func queryHandler(db *sql.DB, query string) gin.HandlerFunc {
 		}
 		defer rows.Close()
 
-		columns, _ := rows.Columns()
-		results := []map[string]interface{}{}
+		type Response struct {
+			ID              int    `json:"ID"`
+			NVNUMERO        int    `json:"NVNUMERO"`
+			NOMAUX          string `json:"NOMAUX"`
+			FECHA_ENTREGA   string `json:"FECHA_ENTREGA"`
+			PROCESO         string `json:"PROCESO"`
+			DETPROD         string `json:"DETPROD"`
+			CANTPROD        int    `json:"CANTPROD"`
+			CANT_A_FABRICAR int    `json:"CANT_A_FABRICAR"`
+			PLACAS_A_USAR   string `json:"PLACAS_A_USAR"`
+			CANTIDAD_PLACAS string `json:"CANTIDAD_PLACAS"`
+		}
+
+		results := []Response{}
 		for rows.Next() {
-			record := make(map[string]interface{})
-			values := make([]interface{}, len(columns))
-			valuePtrs := make([]interface{}, len(columns))
-			for i := range values {
-				valuePtrs[i] = &values[i]
+			var res Response
+			err := rows.Scan(
+				&res.ID, &res.NVNUMERO, &res.NOMAUX, &res.FECHA_ENTREGA, &res.PROCESO,
+				&res.DETPROD, &res.CANTPROD, &res.CANT_A_FABRICAR, &res.PLACAS_A_USAR, &res.CANTIDAD_PLACAS,
+			)
+			if err != nil {
+				c.JSON(500, gin.H{"error": err.Error()})
+				return
 			}
-			rows.Scan(valuePtrs...)
-			for i, col := range columns {
-				record[col] = values[i]
-			}
-			results = append(results, record)
+			results = append(results, res)
 		}
 		c.JSON(200, results)
 	}

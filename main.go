@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 )
@@ -13,7 +14,15 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"message": "Conectado"})
 	})
 
-	setupRoutes(r) // Import the routes from routes.go
-	setupPostRoutes(r) // Import the post routes from routes.go
-	r.Run() // Por defecto en localhost:8080
+	// Ensure SetupRoutes and SetupPostRoutes are accessible
+	SetupRoutes(r)
+	SetupPostRoutes(r)
+
+	// Use environment variable PORT or default to 8080
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080" // Default to 8080 if PORT is not set
+	}
+
+	r.Run(":" + port) // Listen on the configured port
 }
