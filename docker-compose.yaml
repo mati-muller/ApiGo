@@ -1,0 +1,16 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:latest
+    container_name: sqlserver_service
+    environment:
+      SA_PASSWORD: "ComplexP@ssw0rd!" # Updated to meet SQL Server password policy
+      ACCEPT_EULA: "Y"
+      MSSQL_DATABASE: REPORTES
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+
+volumes:
+  sqlserver_data: {}
+

@@ -42,14 +42,11 @@ func init() {
 func main() {
 	r := gin.Default()
 
-	// Registrar rutas
-	registerRoutes(r)
+	r.GET("/", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"message": "Buena ctm",
+		})
+	})
 
 	r.Run() // Por defecto en localhost:8080
-}
-
-func registerRoutes(r *gin.Engine) {
-	// Aquí se pueden registrar las rutas de diferentes archivos
-	registerUserRoutes(r)
-	registerProductRoutes(r)
 }
