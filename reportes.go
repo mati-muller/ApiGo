@@ -1,0 +1,360 @@
+package main
+
+import (
+	"database/sql"
+	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"strconv"
+
+	_ "github.com/denisenkom/go-mssqldb"
+	"github.com/gin-gonic/gin"
+)
+
+func Reportes(r *gin.Engine) {
+	r.POST("/reportes/update", updateHandler)
+}
+
+func updateHandler(c *gin.Context) {
+	var reqBody struct {
+		ID              int      `json:"id"`
+		SubtractValue   int      `json:"subtractValue"`
+		Placas          []string `json:"placas"`
+		PlacasUsadas    []int    `json:"placasUsadas"`
+		PlacasBuenas    []int    `json:"placasBuenas"`
+		PlacasMalas     []int    `json:"placasMalas"`
+		TiempoTotal     float64  `json:"tiempoTotal"`
+		User            string   `json:"user"`
+		StockCant       int      `json:"stockCant"`
+		NumeroPersonas  int      `json:"numeroPersonas"`
+		AddToStock      bool     `json:"addToStock"`
+		RemoveFromStock bool     `json:"removeFromStock"`
+		RemoveStockCant int      `json:"removeStockCant"`
+	}
+
+	// Parse and validate request body
+	if err := c.ShouldBindJSON(&reqBody); err != nil {
+		log.Println("Error parsing request body:", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body", "details": err.Error()})
+		return
+	}
+
+	// Validate required fields
+	if reqBody.ID == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Field 'id' is required and must be greater than 0"})
+		return
+	}
+	if reqBody.SubtractValue < 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Field 'subtractValue' must be non-negative"})
+		return
+	}
+	if len(reqBody.Placas) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Field 'placas' must contain at least one item"})
+		return
+	}
+	if len(reqBody.PlacasUsadas) != len(reqBody.Placas) || len(reqBody.PlacasBuenas) != len(reqBody.Placas) || len(reqBody.PlacasMalas) != len(reqBody.Placas) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Mismatch in the number of Placas, PlacasUsadas, PlacasBuenas, and PlacasMalas"})
+		return
+	}
+
+	// Use environment variables for database connection
+	db, err := sql.Open("sqlserver", "Server="+os.Getenv("SQL_SERVER")+"\\"+os.Getenv("SQL_INSTANCE")+";Database="+os.Getenv("SQL_DATABASE2")+";User Id="+os.Getenv("SQL_USER")+";Password="+os.Getenv("SQL_PASSWORD")+";Encrypt=disable")
+	if err != nil {
+		log.Println("Database connection error:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database connection error"})
+		return
+	}
+	defer db.Close()
+
+	tx, err := db.Begin()
+	if err != nil {
+		log.Println("Transaction begin error:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Transaction begin error"})
+		return
+	}
+
+	defer func() {
+		if p := recover(); p != nil {
+			tx.Rollback()
+			log.Println("Transaction rollback due to panic:", p)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Server error"})
+		}
+	}()
+
+	// Fetch current data
+	var currentPlacas, currentPlacasUsadas, currentPlacasBuenas, currentPlacasMalas string
+	err = tx.QueryRow(`
+		SELECT PLACA, PLACAS_USADAS, PLACAS_BUENAS, PLACAS_MALAS
+		FROM procesos2
+		WHERE ID = @p1
+	`, reqBody.ID).Scan(&currentPlacas, &currentPlacasUsadas, &currentPlacasBuenas, &currentPlacasMalas)
+	if err == sql.ErrNoRows {
+		tx.Rollback()
+		c.JSON(http.StatusNotFound, gin.H{"error": "Record not found"})
+		return
+	} else if err != nil {
+		tx.Rollback()
+		log.Println("Query error:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Query error"})
+		return
+	}
+
+	// Parse JSON fields
+	var placas, placasUsadas, placasBuenas, placasMalas []string
+	json.Unmarshal([]byte(currentPlacas), &placas)
+	json.Unmarshal([]byte(currentPlacasUsadas), &placasUsadas)
+	json.Unmarshal([]byte(currentPlacasBuenas), &placasBuenas)
+	json.Unmarshal([]byte(currentPlacasMalas), &placasMalas)
+
+	// Merge new data
+	for i, placa := range reqBody.Placas {
+		index := -1
+		for j, existingPlaca := range placas {
+			if existingPlaca == placa {
+				index = j
+				break
+			}
+		}
+		if index != -1 {
+			placasUsadas[index] = mergeStringValues(placasUsadas[index], strconv.Itoa(reqBody.PlacasUsadas[i]))
+			placasBuenas[index] = mergeStringValues(placasBuenas[index], strconv.Itoa(reqBody.PlacasBuenas[i]))
+			placasMalas[index] = mergeStringValues(placasMalas[index], strconv.Itoa(reqBody.PlacasMalas[i]))
+		} else {
+			placas = append(placas, placa)
+			placasUsadas = append(placasUsadas, strconv.Itoa(reqBody.PlacasUsadas[i]))
+			placasBuenas = append(placasBuenas, strconv.Itoa(reqBody.PlacasBuenas[i]))
+			placasMalas = append(placasMalas, strconv.Itoa(reqBody.PlacasMalas[i]))
+		}
+	}
+
+	// Update database
+	placasStr, _ := json.Marshal(placas)
+	placasUsadasStr, _ := json.Marshal(placasUsadas)
+	placasBuenasStr, _ := json.Marshal(placasBuenas)
+	placasMalasStr, _ := json.Marshal(placasMalas)
+
+	_, err = tx.Exec(`
+		UPDATE procesos2
+		SET CANT_A_PROD = CASE WHEN CANT_A_PROD - @p1 <= 0 THEN 0 ELSE CANT_A_PROD - @p1 END,
+			CANT_PROD = CANT_PROD + @p1,
+			ESTADO_PROC = CASE WHEN CANT_A_PROD - @p1 <= 0 THEN 'LISTO' ELSE ESTADO_PROC END,
+			PLACA = @p2,
+			PLACAS_USADAS = @p3,
+			PLACAS_BUENAS = @p4,
+			PLACAS_MALAS = @p5,
+			TIEMPO_TOTAL = TIEMPO_TOTAL + @p6,
+			[USER] = @p7,
+			STOCK_CANT = STOCK_CANT + @p8,
+			NUMERO_PERSONAS = @p9
+		WHERE ID = @p10
+	`, reqBody.SubtractValue, string(placasStr), string(placasUsadasStr), string(placasBuenasStr), string(placasMalasStr),
+		reqBody.TiempoTotal, reqBody.User, reqBody.StockCant, reqBody.NumeroPersonas, reqBody.ID)
+	if err != nil {
+		tx.Rollback()
+		log.Println("Update error:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Update error"})
+		return
+	}
+
+	// Handle Add to Stock
+	if reqBody.AddToStock {
+		if reqBody.StockCant <= 0 {
+			tx.Rollback()
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid stock quantity to add."})
+			return
+		}
+
+		if err := updateStock(tx, reqBody.ID, reqBody.StockCant, "Add"); err != nil {
+			tx.Rollback()
+			log.Println("Add to stock error:", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Add to stock error"})
+			return
+		}
+	}
+
+	// Handle Remove from Stock
+	if reqBody.RemoveFromStock {
+		if reqBody.RemoveStockCant <= 0 {
+			tx.Rollback()
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid stock quantity to remove."})
+			return
+		}
+
+		if err := updateStock(tx, reqBody.ID, reqBody.RemoveStockCant, "Remove"); err != nil {
+			tx.Rollback()
+			log.Println("Remove from stock error:", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Remove from stock error"})
+			return
+		}
+	}
+
+	// Deduct inventory for each placa
+	for i, placa := range reqBody.Placas {
+		if err := deductInventory(tx, placa, reqBody.PlacasUsadas[i]); err != nil {
+			tx.Rollback()
+			log.Println("Inventory deduction error:", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+	}
+
+	// Commit transaction
+	if err := tx.Commit(); err != nil {
+		log.Println("Transaction commit error:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Transaction commit error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Record updated successfully"})
+}
+
+func mergeStringValues(existing, new string) string {
+	existingValue, _ := strconv.Atoi(existing)
+	newValue, _ := strconv.Atoi(new)
+	return strconv.Itoa(existingValue + newValue)
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+// updateStock updates the stock quantity in procesos2 and desprod in procesos.
+func updateStock(tx *sql.Tx, processID, quantity int, action string) error {
+	// Fetch DETPROD from procesos using the provided ID
+	var detProd string
+	err := tx.QueryRow(`
+		SELECT DETPROD
+		FROM procesos
+		WHERE ID = @p1
+	`, processID).Scan(&detProd)
+	if err != nil {
+		return fmt.Errorf("failed to fetch DETPROD for ID %d: %v", processID, err)
+	}
+
+	if action == "Add" {
+		// Update STOCK_CANT in procesos2
+		_, err := tx.Exec(`
+			UPDATE procesos2
+			SET STOCK = 'Add',
+				STOCK_CANT = STOCK_CANT + @p1
+			WHERE ID = @p2
+		`, quantity, processID)
+		if err != nil {
+			return fmt.Errorf("failed to add stock in procesos2: %v", err)
+		}
+
+		// Check if DETPROD exists in inventory
+		var currentCantidad int
+		err = tx.QueryRow(`
+			SELECT cantidad
+			FROM inventario
+			WHERE placa = @p1
+		`, detProd).Scan(&currentCantidad)
+		if err == sql.ErrNoRows {
+			// Calculate the next ID for the inventory record
+			var nextID int
+			err = tx.QueryRow(`
+				SELECT ISNULL(MAX(ID), 0) + 1 AS NextID
+				FROM inventario
+			`).Scan(&nextID)
+			if err != nil {
+				return fmt.Errorf("failed to calculate next ID for inventory: %v", err)
+			}
+
+			// Insert DETPROD into inventory with the calculated ID
+			_, err = tx.Exec(`
+				INSERT INTO inventario (ID, placa, cantidad)
+				VALUES (@p1, @p2, @p3)
+			`, nextID, detProd, quantity)
+			if err != nil {
+				return fmt.Errorf("failed to insert DETPROD into inventory: %v", err)
+			}
+		} else if err != nil {
+			return fmt.Errorf("failed to fetch inventory for DETPROD: %v", err)
+		} else {
+			// Update existing inventory record for DETPROD
+			_, err = tx.Exec(`
+				UPDATE inventario
+				SET cantidad = cantidad + @p1
+				WHERE placa = @p2
+			`, quantity, detProd)
+			if err != nil {
+				return fmt.Errorf("failed to update inventory for DETPROD: %v", err)
+			}
+		}
+	} else if action == "Remove" {
+		// Update STOCK_CANT in procesos2
+		_, err := tx.Exec(`
+			UPDATE procesos2
+			SET STOCK = 'Remove',
+				STOCK_CANT = CASE WHEN STOCK_CANT - @p1 < 0 THEN 0 ELSE STOCK_CANT - @p1 END
+			WHERE ID = @p2
+		`, quantity, processID)
+		if err != nil {
+			return fmt.Errorf("failed to remove stock in procesos2: %v", err)
+		}
+
+		// Deduct DETPROD from inventory
+		_, err = tx.Exec(`
+			UPDATE inventario
+			SET cantidad = CASE WHEN cantidad - @p1 < 0 THEN 0 ELSE cantidad - @p1 END
+			WHERE placa = @p2
+		`, quantity, detProd)
+		if err != nil {
+			return fmt.Errorf("failed to deduct DETPROD from inventory: %v", err)
+		}
+	} else {
+		return fmt.Errorf("invalid stock action: %s", action)
+	}
+	return nil
+}
+
+// deductInventory deducts the specified quantity from the inventory for a given placa.
+func deductInventory(tx *sql.Tx, placa string, quantityToDeduct int) error {
+	rows, err := tx.Query(`
+		SELECT ID, cantidad
+		FROM inventario
+		WHERE placa = @p1
+		ORDER BY ID ASC
+	`, placa)
+	if err != nil {
+		return fmt.Errorf("inventory query error: %v", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var inventoryID, currentCantidad int
+		if err := rows.Scan(&inventoryID, &currentCantidad); err != nil {
+			return fmt.Errorf("row scan error: %v", err)
+		}
+
+		if quantityToDeduct <= 0 {
+			break
+		}
+
+		subtractFromCurrent := min(currentCantidad, quantityToDeduct)
+		_, err := tx.Exec(`
+			UPDATE inventario
+			SET cantidad_total_usada = cantidad_total_usada + @p1,
+				cantidad = CASE WHEN cantidad - @p1 <= 0 THEN 0 ELSE cantidad - @p1 END,
+				precio_total = (CASE WHEN cantidad - @p1 <= 0 THEN 0 ELSE cantidad - @p1 END) * precio_pp
+			WHERE ID = @p2
+		`, subtractFromCurrent, inventoryID)
+		if err != nil {
+			return fmt.Errorf("inventory update error: %v", err)
+		}
+
+		quantityToDeduct -= subtractFromCurrent
+	}
+
+	if quantityToDeduct > 0 {
+		return fmt.Errorf("not enough inventory for placa: %s", placa)
+	}
+
+	return nil
+}

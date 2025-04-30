@@ -66,6 +66,8 @@ func main() {
 	SetupPostRoutes(r)
 	SetupUserRoutes(r)
 	SetupProcesosRoutes(r)
+	SetupInventarioRoutes(r)
+	Reportes(r)
 	// Use environment variable PORT or default to 8080
 	port := os.Getenv("PORT")
 	if port == "" {
