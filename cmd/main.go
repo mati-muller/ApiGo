@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"os"
 	"time"
-
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"ApiGo/routes"
 )
 
 // Rate limiting middleware with a sliding window
@@ -61,14 +61,16 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"message": "Conectado"})
 	})
 
-	// Ensure SetupRoutes and SetupPostRoutes are accessible
-	SetupRoutes(r)
-	SetupPostRoutes(r)
-	SetupUserRoutes(r)
-	SetupProcesosRoutes(r)
-	SetupInventarioRoutes(r)
-	SetupEdits(r)
-	Reportes(r)
+	// Ensure SetupRoutes and other route functions are accessible
+	routes.SetupRoutes(r)
+	routes.SetupPostRoutes(r)
+	routes.SetupUserRoutes(r)
+	routes.SetupProcesosRoutes(r)
+	routes.SetupInventarioRoutes(r)
+	routes.SetupEdits(r)
+	routes.Reportes(r)
+	routes.SetupUserDataRoutes(r)
+
 	// Use environment variable PORT or default to 8080
 	port := os.Getenv("PORT")
 	if port == "" {
