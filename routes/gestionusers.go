@@ -85,7 +85,8 @@ func procesosUser(c *gin.Context) {
 	}
 
 	// Update the user's procesos in the database
-	_, err = db.Exec("UPDATE REPORTES.dbo.users SET procesos = ? WHERE ID = ?", string(procesosJSON), requestBody.UserID)
+	query := "UPDATE REPORTES.dbo.users SET procesos = @procesos WHERE ID = @userID"
+	_, err = db.Exec(query, sql.Named("procesos", string(procesosJSON)), sql.Named("userID", requestBody.UserID))
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, "Failed to update procesos: "+err.Error())
 		return
