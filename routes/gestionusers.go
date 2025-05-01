@@ -2,6 +2,7 @@ package routes
 
 import (
 	"database/sql"
+	"encoding/json"
 	"net/http"
 	"os"
 
@@ -11,6 +12,7 @@ import (
 
 func SetupUserDataRoutes(r *gin.Engine) {
 	r.GET("/users/data", getUsers)
+	r.POST("/users/procesos", procesosUser)
 }
 
 func getUsers(c *gin.Context) {
@@ -54,4 +56,40 @@ func getUsers(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, users)
+}
+
+func procesosUser(c *gin.Context) {
+	// Parse request body
+	var requestBody struct {
+		UserID   int      `json:"user_id"`
+		Procesos []string `json:"procesos"`
+	}
+	if err := c.ShouldBindJSON(&requestBody); err != nil {
+		handleError(c, http.StatusBadRequest, "Invalid request body: "+err.Error())
+		return
+	}
+
+	// Establish database connection
+	db, err := sql.Open("sqlserver", "Server="+os.Getenv("SQL_SERVER")+"\\"+os.Getenv("SQL_INSTANCE")+";Database="+os.Getenv("SQL_DATABASE2")+";User Id="+os.Getenv("SQL_USER")+";Password="+os.Getenv("SQL_PASSWORD")+";Encrypt=disable")
+	if err != nil {
+		handleError(c, http.StatusInternalServerError, "Failed to connect to database: "+err.Error())
+		return
+	}
+	defer db.Close()
+
+	// Convert procesos to JSON string
+	procesosJSON, err := json.Marshal(requestBody.Procesos)
+	if err != nil {
+		handleError(c, http.StatusInternalServerError, "Failed to encode procesos: "+err.Error())
+		return
+	}
+
+	// Update the user's procesos in the database
+	_, err = db.Exec("UPDATE REPORTES.dbo.users SET procesos = ? WHERE ID = ?", string(procesosJSON), requestBody.UserID)
+	if err != nil {
+		handleError(c, http.StatusInternalServerError, "Failed to update procesos: "+err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Procesos updated successfully"})
 }
