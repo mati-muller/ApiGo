@@ -101,11 +101,12 @@ func loginUser(c *gin.Context) {
 		Password string
 		Nombre   string
 		Apellido string
+		Procesos string
 	}
 	err := db.QueryRow(
-		"SELECT USERNAME, PASSWORD, NOMBRE, APELLIDO FROM REPORTES.dbo.users WHERE USERNAME = @Username",
+		"SELECT USERNAME, PASSWORD, NOMBRE, APELLIDO, ISNULL(procesos, '') FROM REPORTES.dbo.users WHERE USERNAME = @Username",
 		sql.Named("Username", credentials.Username),
-	).Scan(&user.Username, &user.Password, &user.Nombre, &user.Apellido)
+	).Scan(&user.Username, &user.Password, &user.Nombre, &user.Apellido, &user.Procesos)
 	if err == sql.ErrNoRows {
 		handleError(c, http.StatusBadRequest, "Invalid username or password")
 		return
@@ -122,6 +123,7 @@ func loginUser(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"username":       user.Username,
 		"nombreCompleto": user.Nombre + " " + user.Apellido,
+		"procesos":       user.Procesos,
 	})
 }
 
