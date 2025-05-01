@@ -58,7 +58,7 @@ func main() {
 	r.Use(rateLimit())
 
 	r.GET("/", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"message": "Conectado"})
+		c.JSON(http.StatusOK, gin.H{"message": "Connected to API"})
 	})
 
 	// Ensure SetupRoutes and other route functions are accessible

@@ -5,8 +5,8 @@ root = "./"
   cmd = "cmd /C \"set GOOS=windows && set GOARCH=arm64 && go build -o ./tmp/main.exe .\""
   bin = "./tmp/main.exe"
   include_ext = ["go"]
-  include_dir = ["cmd", "routes", "db"]
-  exclude_dir = ["tmp"]
+  include_dir = ["cmd", "routes"]
+  exclude_dir = ["tmp","assets"]
 
 [log]
   level = "info"
