@@ -118,10 +118,12 @@ func updateHandler(c *gin.Context) {
 			}
 		}
 		if index != -1 {
+			// If the placa already exists, sum the values
 			placasUsadas[index] = mergeStringValues(placasUsadas[index], strconv.Itoa(reqBody.PlacasUsadas[i]))
 			placasBuenas[index] = mergeStringValues(placasBuenas[index], strconv.Itoa(reqBody.PlacasBuenas[i]))
 			placasMalas[index] = mergeStringValues(placasMalas[index], strconv.Itoa(reqBody.PlacasMalas[i]))
 		} else {
+			// If the placa does not exist, add it to the list
 			placas = append(placas, placa)
 			placasUsadas = append(placasUsadas, strconv.Itoa(reqBody.PlacasUsadas[i]))
 			placasBuenas = append(placasBuenas, strconv.Itoa(reqBody.PlacasBuenas[i]))
