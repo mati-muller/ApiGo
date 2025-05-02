@@ -13,6 +13,7 @@ import (
 func SetupUserDataRoutes(r *gin.Engine) {
 	r.GET("/users/data", getUsers)
 	r.POST("/users/procesos", procesosUser)
+	r.POST("/users/delete", deleteUser)
 }
 
 func getUsers(c *gin.Context) {
@@ -95,4 +96,33 @@ func procesosUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Procesos updated successfully"})
+}
+
+func deleteUser(c *gin.Context) {
+	// Parse request body
+	var requestBody struct {
+		UserID int `json:"user_id"`
+	}
+	if err := c.ShouldBindJSON(&requestBody); err != nil {
+		handleError(c, http.StatusBadRequest, "Invalid request body: "+err.Error())
+		return
+	}
+
+	// Establish database connection
+	db, err := sql.Open("sqlserver", "Server="+os.Getenv("SQL_SERVER")+"\\"+os.Getenv("SQL_INSTANCE")+";Database="+os.Getenv("SQL_DATABASE2")+";User Id="+os.Getenv("SQL_USER")+";Password="+os.Getenv("SQL_PASSWORD")+";Encrypt=disable")
+	if err != nil {
+		handleError(c, http.StatusInternalServerError, "Failed to connect to database: "+err.Error())
+		return
+	}
+	defer db.Close()
+
+	// Delete the user from the database
+	query := "DELETE FROM REPORTES.dbo.users WHERE ID = @userID"
+	_, err = db.Exec(query, sql.Named("userID", requestBody.UserID))
+	if err != nil {
+		handleError(c, http.StatusInternalServerError, "Failed to delete user: "+err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "User deleted successfully"})
 }
