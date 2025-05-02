@@ -36,6 +36,7 @@ func SetupUserRoutes(r *gin.Engine) {
 	r.POST("/users/register", registerUser)
 	r.POST("/users/login", loginUser)
 	r.POST("/users/change-password", changePassword)
+	r.GET("/users/:id", getUserByID)
 }
 
 func registerUser(c *gin.Context) {
@@ -97,6 +98,7 @@ func loginUser(c *gin.Context) {
 	}
 
 	var user struct {
+		ID       int
 		Username string
 		Password string
 		Nombre   string
@@ -104,9 +106,9 @@ func loginUser(c *gin.Context) {
 		Procesos string
 	}
 	err := db.QueryRow(
-		"SELECT USERNAME, PASSWORD, NOMBRE, APELLIDO, ISNULL(procesos, '') FROM REPORTES.dbo.users WHERE USERNAME = @Username",
+		"SELECT ID, USERNAME, PASSWORD, NOMBRE, APELLIDO, ISNULL(procesos, '') FROM REPORTES.dbo.users WHERE USERNAME = @Username",
 		sql.Named("Username", credentials.Username),
-	).Scan(&user.Username, &user.Password, &user.Nombre, &user.Apellido, &user.Procesos)
+	).Scan(&user.ID, &user.Username, &user.Password, &user.Nombre, &user.Apellido, &user.Procesos)
 	if err == sql.ErrNoRows {
 		handleError(c, http.StatusBadRequest, "Invalid username or password")
 		return
@@ -121,6 +123,7 @@ func loginUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
+		"id":             user.ID,
 		"username":       user.Username,
 		"nombreCompleto": user.Nombre + " " + user.Apellido,
 		"procesos":       user.Procesos,
@@ -165,4 +168,35 @@ func changePassword(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Password changed successfully"})
+}
+
+func getUserByID(c *gin.Context) {
+	id := c.Param("id")
+
+	var user struct {
+		ID       int
+		Username string
+		Nombre   string
+		Apellido string
+		Procesos string
+	}
+
+	err := db.QueryRow(
+		"SELECT ID, USERNAME, NOMBRE, APELLIDO, ISNULL(procesos, '') FROM REPORTES.dbo.users WHERE ID = @ID",
+		sql.Named("ID", id),
+	).Scan(&user.ID, &user.Username, &user.Nombre, &user.Apellido, &user.Procesos)
+	if err == sql.ErrNoRows {
+		handleError(c, http.StatusNotFound, "User not found")
+		return
+	} else if err != nil {
+		handleError(c, http.StatusInternalServerError, "Failed to query user: "+err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"id":             user.ID,
+		"username":       user.Username,
+		"nombreCompleto": user.Nombre + " " + user.Apellido,
+		"procesos":       user.Procesos,
+	})
 }
