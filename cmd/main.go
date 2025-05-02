@@ -12,7 +12,7 @@ import (
 // Rate limiting middleware with a sliding window
 func rateLimit() gin.HandlerFunc {
 	limiter := make(map[string][]time.Time)
-	const maxRequests = 10
+	const maxRequests = 1000
 	const window = time.Minute
 
 	return func(c *gin.Context) {
