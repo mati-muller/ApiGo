@@ -24,7 +24,7 @@ func getUsers(c *gin.Context) {
 	}
 	defer db.Close()
 
-	rows, err := db.Query("SELECT ID, NOMBRE, APELLIDO FROM REPORTES.dbo.users")
+	rows, err := db.Query("SELECT ID, NOMBRE, APELLIDO, USERNAME FROM REPORTES.dbo.users")
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, "Failed to fetch users: "+err.Error())
 		return
@@ -35,6 +35,7 @@ func getUsers(c *gin.Context) {
 		ID       int    `json:"id"`
 		Nombre   string `json:"nombre"`
 		Apellido string `json:"apellido"`
+		Username string `json:"username"`
 	}
 
 	for rows.Next() {
@@ -42,8 +43,9 @@ func getUsers(c *gin.Context) {
 			ID       int    `json:"id"`
 			Nombre   string `json:"nombre"`
 			Apellido string `json:"apellido"`
+			Username string `json:"username"`
 		}
-		if err := rows.Scan(&user.ID, &user.Nombre, &user.Apellido); err != nil {
+		if err := rows.Scan(&user.ID, &user.Nombre, &user.Apellido, &user.Username); err != nil {
 			handleError(c, http.StatusInternalServerError, "Failed to scan user: "+err.Error())
 			return
 		}
