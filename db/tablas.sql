@@ -42,15 +42,15 @@ CREATE TABLE nv_hechas(
 );
 
 CREATE TABLE inventario (
-	ID INT PRIMARY KEY,
+	ID INT PRIMARY KEY IDENTITY(1,1),
     placa NVARCHAR(MAX),
     cantidad INT DEFAULT NULL,
     cantidad_total_usada INT DEFAULT 0,
     fecha_compra NVARCHAR(MAX) DEFAULT NULL,
     precio_pp DECIMAL(10,2) DEFAULT NULL,
-    precio_total DECIMAL(10,2) DEFAULT NULL,
-    
-)
+    precio_total DECIMAL(10,2) DEFAULT NULL
+);
+
 CREATE TABLE users (
     ID INT PRIMARY KEY IDENTITY(1,1),
     USERNAME NVARCHAR(MAX) NOT NULL,

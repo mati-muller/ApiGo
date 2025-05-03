@@ -12,6 +12,7 @@ import (
 func SetupInventarioRoutes(r *gin.Engine) {
 	r.GET("/inventario/data", getInventarioData)
 	r.GET("/inventario/placas", getPlacasData)
+	r.POST("/inventario/addplacas", addPlacas)
 }
 
 func getInventarioData(c *gin.Context) {
@@ -94,4 +95,38 @@ func getPlacasData(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, results)
+}
+
+func addPlacas(c *gin.Context) {
+	// Parse input JSON
+	var input struct {
+		Placa       string  `json:"placa"`
+		Fecha       string  `json:"fecha"`
+		PrecioPP    float64 `json:"preciopp"`
+		PrecioTotal float64 `json:"precio_total"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input", "details": err.Error()})
+		return
+	}
+
+	// Establish database connection
+	db, err := sql.Open("sqlserver", "Server="+os.Getenv("SQL_SERVER")+"\\"+os.Getenv("SQL_INSTANCE")+";Database="+os.Getenv("SQL_DATABASE2")+";User="+os.Getenv("SQL_USER")+";Password="+os.Getenv("SQL_PASSWORD")+";Encrypt=disable")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to connect to database"})
+		return
+	}
+	defer db.Close()
+
+	// Insert data into the database
+	_, err = db.Exec(
+		"INSERT INTO inventario (placa, fecha_compra, precio_pp, precio_total) VALUES (@p1, @p2, @p3, @p4)",
+		input.Placa, input.Fecha, input.PrecioPP, input.PrecioTotal,
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert data", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Data inserted successfully"})
 }
