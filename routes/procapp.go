@@ -547,6 +547,83 @@ func SetupPostRoutes(r *gin.Engine) {
 
 		c.JSON(201, gin.H{"message": "Inserted into MULTIPLE2"})
 	})
+	r.POST("/app/update-pegado", func(c *gin.Context) {
+		var payload struct {
+			Items []struct {
+				ID                int      `json:"ID"`
+				CANT_A_FABRICAR   int      `json:"CANT_A_FABRICAR"`
+				TransformedPlacas []string `json:"transformedPlacas"`
+				PlacasUsadas      []int    `json:"placasUsadas"`
+			} `json:"items"`
+		}
+		if err := c.ShouldBindJSON(&payload); err != nil {
+			log.Printf("Failed to bind JSON: %v", err)
+			c.JSON(400, gin.H{"error": "Invalid JSON payload", "details": err.Error()})
+			return
+		}
+
+		tx, err := db.Begin()
+		if err != nil {
+			log.Printf("Failed to begin transaction: %v", err)
+			c.JSON(500, gin.H{"error": "Failed to begin transaction"})
+			return
+		}
+
+		defer func() {
+			if p := recover(); p != nil {
+				log.Printf("Panic during transaction: %v", p)
+				tx.Rollback()
+				c.JSON(500, gin.H{"error": "Transaction rolled back due to panic"})
+			}
+		}()
+
+		_, err = tx.Exec("DELETE FROM PEGADO")
+		if err != nil {
+			log.Printf("Failed to delete from PEGADO: %v", err)
+			tx.Rollback()
+			c.JSON(500, gin.H{"error": "Failed to delete from PEGADO"})
+			return
+		}
+
+		priority := 1
+		for _, item := range payload.Items {
+			if item.ID == 0 || item.CANT_A_FABRICAR == 0 {
+				log.Printf("Invalid data structure: %+v", item)
+				tx.Rollback()
+				c.JSON(400, gin.H{"error": "Invalid data structure", "item": item})
+				return
+			}
+
+			if len(item.TransformedPlacas) == 0 && len(item.PlacasUsadas) == 0 {
+				log.Printf("Warning: Empty TransformedPlacas and PlacasUsadas for item ID %d", item.ID)
+			}
+
+			_, err = tx.Exec(
+				`INSERT INTO PEGADO (ID, CANT_A_FABRICAR, PRIORITY, PLACAS_A_USAR, CANTIDAD_PLACAS) 
+				VALUES (@ID, @CANT_A_FABRICAR, @PRIORITY, @PLACAS_A_USAR, @CANTIDAD_PLACAS)`,
+				sql.Named("ID", item.ID),
+				sql.Named("CANT_A_FABRICAR", item.CANT_A_FABRICAR),
+				sql.Named("PRIORITY", priority),
+				sql.Named("PLACAS_A_USAR", toJSON(item.TransformedPlacas)),
+				sql.Named("CANTIDAD_PLACAS", toJSON(item.PlacasUsadas)),
+			)
+			if err != nil {
+				log.Printf("Failed to insert into PEGADO: %v", err)
+				tx.Rollback()
+				c.JSON(500, gin.H{"error": "Failed to insert into PEGADO"})
+				return
+			}
+			priority++
+		}
+
+		if err := tx.Commit(); err != nil {
+			log.Printf("Failed to commit transaction: %v", err)
+			c.JSON(500, gin.H{"error": "Failed to commit transaction"})
+			return
+		}
+
+		c.JSON(201, gin.H{"message": "Inserted into PEGADO"})
+	})
 }
 
 func queryHandler(db *sql.DB, query string) gin.HandlerFunc {
@@ -586,6 +663,7 @@ func queryHandler(db *sql.DB, query string) gin.HandlerFunc {
 		}
 		c.JSON(200, results)
 	}
+	
 }
 
 func toJSON(data interface{}) string {
