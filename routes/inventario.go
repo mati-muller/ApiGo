@@ -16,14 +16,14 @@ func SetupInventarioRoutes(r *gin.Engine) {
 
 func getInventarioData(c *gin.Context) {
 	// Establish database connection
-	db, err := sql.Open("sqlserver", "Server="+os.Getenv("SQL_SERVER")+"\\"+os.Getenv("SQL_INSTANCE")+";Database="+os.Getenv("SQL_DATABASE2")+";User Id="+os.Getenv("SQL_USER")+";Password="+os.Getenv("SQL_PASSWORD")+";Encrypt=disable")
+	db, err := sql.Open("sqlserver", "Server="+os.Getenv("SQL_SERVER")+"\\"+os.Getenv("SQL_INSTANCE")+";Database="+os.Getenv("SQL_DATABASE2")+";User="+os.Getenv("SQL_USER")+";Password="+os.Getenv("SQL_PASSWORD")+";Encrypt=disable")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to connect to database"})
 		return
 	}
 	defer db.Close()
 
-	// Ensure the SQL query sums quantities for all identical 'placa' values
+	// Add detailed error logging to capture database issues
 	rows, err := db.Query(`
 			SELECT 
 				inventario.placa, 
@@ -36,7 +36,7 @@ func getInventarioData(c *gin.Context) {
 				inventario.placa
 		`)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to execute query"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to execute query", "details": err.Error()})
 		return
 	}
 	defer rows.Close()
@@ -58,13 +58,14 @@ func getInventarioData(c *gin.Context) {
 
 func getPlacasData(c *gin.Context) {
 	// Establish database connection
-	db, err := sql.Open("sqlserver", "Server="+os.Getenv("SQL_SERVER")+"\\"+os.Getenv("SQL_INSTANCE")+";Database="+os.Getenv("SQL_DATABASE2")+";User Id="+os.Getenv("SQL_USER")+";Password="+os.Getenv("SQL_PASSWORD")+";Encrypt=disable")
+	db, err := sql.Open("sqlserver", "Server="+os.Getenv("SQL_SERVER")+"\\"+os.Getenv("SQL_INSTANCE")+";Database="+os.Getenv("SQL_DATABASE2")+";User="+os.Getenv("SQL_USER")+";Password="+os.Getenv("SQL_PASSWORD")+";Encrypt=disable")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to connect to database"})
 		return
 	}
 	defer db.Close()
 
+	// Add detailed error logging to capture database issues
 	rows, err := db.Query(`
 			SELECT 
 				inventario.placa, 
@@ -77,7 +78,7 @@ func getPlacasData(c *gin.Context) {
 				inventario.placa
 		`)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to execute query"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to execute query", "details": err.Error()})
 		return
 	}
 	defer rows.Close()

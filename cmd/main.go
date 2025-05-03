@@ -61,8 +61,7 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"message": "Connected"})
 	})
 
-	// Ensure SetupRoutes and other route functions are accessible
-	routes.SetupRoutes(r)
+	// Setup routes
 	routes.SetupPostRoutes(r)
 	routes.SetupUserRoutes(r)
 	routes.SetupProcesosRoutes(r)
