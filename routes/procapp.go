@@ -4,74 +4,120 @@ import (
 	"database/sql"
 	"encoding/json"
 	"log"
+	"net/http"
 	"os"
 
 	_ "github.com/denisenkom/go-mssqldb"
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 )
 
-func init() {
-	// Load .env file
-	if err := godotenv.Load(); err != nil {
-		log.Fatalf("Error loading .env file: %v", err)
-	}
+
+func SetupProcAppRoutes(r *gin.Engine) {
+	r.GET("/app/troquelado", getTroquelado)
+	r.GET("/app/troquelado2", getTroquelado2)
+	r.GET("/app/encolado", getEncolado)
+	r.GET("/app/encolado2", getEncolado2)
+	r.GET("/app/multiple", getMultiple)
+	r.GET("/app/multiple2", getMultiple2)
 }
 
-func SetupRoutes(r *gin.Engine) {
-	// Use environment variables for database connection
-	db, err := sql.Open("sqlserver", "Server="+os.Getenv("SQL_SERVER")+"\\"+os.Getenv("SQL_INSTANCE")+";Database="+os.Getenv("SQL_DATABASE2")+";User Id="+os.Getenv("SQL_USER")+";Password="+os.Getenv("SQL_PASSWORD")+";Encrypt=disable")
+func queryDatabase(c *gin.Context, query string) {
+	rows, err := db.Query(query)
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+
+	columns, _ := rows.Columns()
+	results := []map[string]interface{}{}
+
+	for rows.Next() {
+		row := make([]interface{}, len(columns))
+		rowPointers := make([]interface{}, len(columns))
+		for i := range row {
+			rowPointers[i] = &row[i]
+		}
+
+		if err := rows.Scan(rowPointers...); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		result := map[string]interface{}{}
+		for i, col := range columns {
+			result[col] = row[i]
+		}
+		results = append(results, result)
 	}
 
-	r.GET("/app/troquelado", queryHandler(db, `
+	c.JSON(http.StatusOK, results)
+}
+
+func getTroquelado(c *gin.Context) {
+	query := `
 		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
 		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS
 		FROM procesos p
 		JOIN TROQUELADO p2 ON p.ID = p2.ID
 		ORDER BY p2.PRIORITY
-	`))
+	`
+	queryDatabase(c, query)
+}
 
-	r.GET("/app/troquelado2", queryHandler(db, `
+func getTroquelado2(c *gin.Context) {
+	query := `
 		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
 		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS
 		FROM procesos p
 		JOIN TROQUELADO2 p2 ON p.ID = p2.ID
 		ORDER BY p2.PRIORITY
-	`))
+	`
+	queryDatabase(c, query)
+}
 
-	r.GET("/app/encolado", queryHandler(db, `
+func getEncolado(c *gin.Context) {
+	query := `
 		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
 		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS
 		FROM procesos p
 		JOIN ENCOLADO p2 ON p.ID = p2.ID
 		ORDER BY p2.PRIORITY
-	`))
+	`
+	queryDatabase(c, query)
+}
 
-	r.GET("/app/encolado2", queryHandler(db, `
+func getEncolado2(c *gin.Context) {
+	query := `
 		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
 		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS
 		FROM procesos p
 		JOIN ENCOLADO2 p2 ON p.ID = p2.ID
 		ORDER BY p2.PRIORITY
-	`))
+	`
+	queryDatabase(c, query)
+}
 
-	r.GET("/app/multiple", queryHandler(db, `
+func getMultiple(c *gin.Context) {
+	query := `
 		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
 		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS
 		FROM procesos p
 		JOIN MULTIPLE p2 ON p.ID = p2.ID
 		ORDER BY p2.PRIORITY
-	`))
+	`
+	queryDatabase(c, query)
+}
 
-	r.GET("/app/multiple2", queryHandler(db, `
+func getMultiple2(c *gin.Context) {
+	query := `
 		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
 		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS
 		FROM procesos p
 		JOIN MULTIPLE2 p2 ON p.ID = p2.ID
 		ORDER BY p2.PRIORITY
-	`))
+	`
+	queryDatabase(c, query)
 }
 
 func SetupPostRoutes(r *gin.Engine) {
@@ -624,46 +670,6 @@ func SetupPostRoutes(r *gin.Engine) {
 
 		c.JSON(201, gin.H{"message": "Inserted into PEGADO"})
 	})
-}
-
-func queryHandler(db *sql.DB, query string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		rows, err := db.Query(query)
-		if err != nil {
-			c.JSON(500, gin.H{"error": err.Error()})
-			return
-		}
-		defer rows.Close()
-
-		type Response struct {
-			ID              int    `json:"ID"`
-			NVNUMERO        int    `json:"NVNUMERO"`
-			NOMAUX          string `json:"NOMAUX"`
-			FECHA_ENTREGA   string `json:"FECHA_ENTREGA"`
-			PROCESO         string `json:"PROCESO"`
-			DETPROD         string `json:"DETPROD"`
-			CANTPROD        int    `json:"CANTPROD"`
-			CANT_A_FABRICAR int    `json:"CANT_A_FABRICAR"`
-			PLACAS_A_USAR   string `json:"PLACAS_A_USAR"`
-			CANTIDAD_PLACAS string `json:"CANTIDAD_PLACAS"`
-		}
-
-		results := []Response{}
-		for rows.Next() {
-			var res Response
-			err := rows.Scan(
-				&res.ID, &res.NVNUMERO, &res.NOMAUX, &res.FECHA_ENTREGA, &res.PROCESO,
-				&res.DETPROD, &res.CANTPROD, &res.CANT_A_FABRICAR, &res.PLACAS_A_USAR, &res.CANTIDAD_PLACAS,
-			)
-			if err != nil {
-				c.JSON(500, gin.H{"error": err.Error()})
-				return
-			}
-			results = append(results, res)
-		}
-		c.JSON(200, results)
-	}
-	
 }
 
 func toJSON(data interface{}) string {

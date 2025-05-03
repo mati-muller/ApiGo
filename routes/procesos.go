@@ -21,38 +21,7 @@ func SetupProcesosRoutes(r *gin.Engine) {
 	r.GET("/procesos/nv", getNV)
 }
 
-func queryDatabase(c *gin.Context, query string) {
-	rows, err := db.Query(query)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	defer rows.Close()
-
-	columns, _ := rows.Columns()
-	results := []map[string]interface{}{}
-
-	for rows.Next() {
-		row := make([]interface{}, len(columns))
-		rowPointers := make([]interface{}, len(columns))
-		for i := range row {
-			rowPointers[i] = &row[i]
-		}
-
-		if err := rows.Scan(rowPointers...); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-
-		result := map[string]interface{}{}
-		for i, col := range columns {
-			result[col] = row[i]
-		}
-		results = append(results, result)
-	}
-
-	c.JSON(http.StatusOK, results)
-}
+// queryDatabase is imported from procapp.go
 
 func getData(c *gin.Context) {
 	query := `
