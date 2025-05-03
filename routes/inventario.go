@@ -12,7 +12,7 @@ import (
 func SetupInventarioRoutes(r *gin.Engine) {
 	r.GET("/inventario/data", getInventarioData)
 	r.GET("/inventario/placas", getPlacasData)
-	r.POST("/inventario/addplacas", addPlacas)
+	r.POST("/inventario/addplaca", addPlacas)
 }
 
 func getInventarioData(c *gin.Context) {
