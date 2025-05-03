@@ -68,8 +68,7 @@ func getPlacasData(c *gin.Context) {
 	// Add detailed error logging to capture database issues
 	rows, err := db.Query(`
 			SELECT 
-				inventario.placa, 
-				SUM(inventario.cantidad) AS Cantidad
+				inventario.placa
 			FROM 
 				inventario
 			WHERE 
@@ -87,12 +86,11 @@ func getPlacasData(c *gin.Context) {
 	var results []map[string]interface{}
 	for rows.Next() {
 		var placa string
-		var cantidad int
-		if err := rows.Scan(&placa, &cantidad); err != nil {
+		if err := rows.Scan(&placa); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to scan row"})
 			return
 		}
-		results = append(results, gin.H{"placa": placa, "cantidad": cantidad})
+		results = append(results, gin.H{"placa": placa})
 	}
 
 	c.JSON(http.StatusOK, results)
