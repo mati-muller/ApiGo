@@ -102,11 +102,24 @@ func updateHandler(c *gin.Context) {
 	}
 
 	// Parse JSON fields
-	var placas, placasUsadas, placasBuenas, placasMalas []string
-	json.Unmarshal([]byte(currentPlacas), &placas)
-	json.Unmarshal([]byte(currentPlacasUsadas), &placasUsadas)
-	json.Unmarshal([]byte(currentPlacasBuenas), &placasBuenas)
-	json.Unmarshal([]byte(currentPlacasMalas), &placasMalas)
+	var placas []string
+	if err := json.Unmarshal([]byte(currentPlacas), &placas); err != nil {
+		log.Println("Error parsing PLACA JSON:", err)
+	}
+	// Use integer slices for counts
+	var placasUsadasArr, placasBuenasArr, placasMalasArr []int
+	if err := json.Unmarshal([]byte(currentPlacasUsadas), &placasUsadasArr); err != nil {
+		log.Println("Error parsing PLACAS_USADAS JSON:", err)
+		placasUsadasArr = make([]int, len(placas))
+	}
+	if err := json.Unmarshal([]byte(currentPlacasBuenas), &placasBuenasArr); err != nil {
+		log.Println("Error parsing PLACAS_BUENAS JSON:", err)
+		placasBuenasArr = make([]int, len(placas))
+	}
+	if err := json.Unmarshal([]byte(currentPlacasMalas), &placasMalasArr); err != nil {
+		log.Println("Error parsing PLACAS_MALAS JSON:", err)
+		placasMalasArr = make([]int, len(placas))
+	}
 
 	// Merge new data
 	for i, placa := range reqBody.Placas {
@@ -118,24 +131,24 @@ func updateHandler(c *gin.Context) {
 			}
 		}
 		if index != -1 {
-			// If the placa already exists, sum the values
-			placasUsadas[index] = mergeStringValues(placasUsadas[index], strconv.Itoa(reqBody.PlacasUsadas[i]))
-			placasBuenas[index] = mergeStringValues(placasBuenas[index], strconv.Itoa(reqBody.PlacasBuenas[i]))
-			placasMalas[index] = mergeStringValues(placasMalas[index], strconv.Itoa(reqBody.PlacasMalas[i]))
+			// sum counts for existing placa
+			placasUsadasArr[index] += reqBody.PlacasUsadas[i]
+			placasBuenasArr[index] += reqBody.PlacasBuenas[i]
+			placasMalasArr[index] += reqBody.PlacasMalas[i]
 		} else {
-			// If the placa does not exist, add it to the list
+			// append new placa and counts
 			placas = append(placas, placa)
-			placasUsadas = append(placasUsadas, strconv.Itoa(reqBody.PlacasUsadas[i]))
-			placasBuenas = append(placasBuenas, strconv.Itoa(reqBody.PlacasBuenas[i]))
-			placasMalas = append(placasMalas, strconv.Itoa(reqBody.PlacasMalas[i]))
+			placasUsadasArr = append(placasUsadasArr, reqBody.PlacasUsadas[i])
+			placasBuenasArr = append(placasBuenasArr, reqBody.PlacasBuenas[i])
+			placasMalasArr = append(placasMalasArr, reqBody.PlacasMalas[i])
 		}
 	}
 
-	// Update database
+	// Update database with JSON arrays of strings and ints
 	placasStr, _ := json.Marshal(placas)
-	placasUsadasStr, _ := json.Marshal(placasUsadas)
-	placasBuenasStr, _ := json.Marshal(placasBuenas)
-	placasMalasStr, _ := json.Marshal(placasMalas)
+	placasUsadasStr, _ := json.Marshal(placasUsadasArr)
+	placasBuenasStr, _ := json.Marshal(placasBuenasArr)
+	placasMalasStr, _ := json.Marshal(placasMalasArr)
 
 	_, err = tx.Exec(`
 		UPDATE procesos2
