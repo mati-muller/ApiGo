@@ -4,13 +4,13 @@ import (
 	"database/sql"
 	"encoding/json"
 	"log"
+	"math"
 	"net/http"
 	"os"
 
 	_ "github.com/denisenkom/go-mssqldb"
 	"github.com/gin-gonic/gin"
 )
-
 
 func SetupProcAppRoutes(r *gin.Engine) {
 	r.GET("/app/troquelado", getTroquelado)
@@ -285,16 +285,22 @@ func SetupPostRoutes(r *gin.Engine) {
 	r.POST("/app/update-encolado", func(c *gin.Context) {
 		var payload struct {
 			Items []struct {
-				ID                int      `json:"ID"`
-				CANT_A_FABRICAR   int      `json:"CANT_A_FABRICAR"`
-				TransformedPlacas []string `json:"transformedPlacas"`
-				PlacasUsadas      []int    `json:"placasUsadas"`
+				ID                int       `json:"ID"`
+				CANT_A_FABRICAR   int       `json:"CANT_A_FABRICAR"`
+				TransformedPlacas []string  `json:"transformedPlacas"`
+				PlacasUsadas      []float64 `json:"placasUsadas"`
 			} `json:"items"`
 		}
 		if err := c.ShouldBindJSON(&payload); err != nil {
 			log.Printf("Failed to bind JSON: %v", err)
 			c.JSON(400, gin.H{"error": "Invalid JSON payload", "details": err.Error()})
 			return
+		}
+
+		for i, item := range payload.Items {
+			for j, placa := range item.PlacasUsadas {
+				payload.Items[i].PlacasUsadas[j] = math.Ceil(placa)
+			}
 		}
 
 		tx, err := db.Begin()

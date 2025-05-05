@@ -1,12 +1,13 @@
 package main
 
 import (
+	"ApiGo/routes"
 	"net/http"
 	"os"
 	"time"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"ApiGo/routes"
 )
 
 // Rate limiting middleware with a sliding window
@@ -69,6 +70,7 @@ func main() {
 	routes.SetupEdits(r)
 	routes.Reportes(r)
 	routes.SetupUserDataRoutes(r)
+	routes.SetupProcAppRoutes(r)
 
 	// Use environment variable PORT or default to 8080
 	port := os.Getenv("PORT")
