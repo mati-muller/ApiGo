@@ -84,12 +84,12 @@ func updateHandler(c *gin.Context) {
 	}()
 
 	// Fetch current data
-	var currentPlacas, currentPlacasUsadas, currentPlacasBuenas, currentPlacasMalas string
+	var currentPlacas, currentPlacasUsadas, currentPlacasBuenas, currentPlacasMalas, currentUser string
 	err = tx.QueryRow(`
-		SELECT PLACA, PLACAS_USADAS, PLACAS_BUENAS, PLACAS_MALAS
+		SELECT PLACA, PLACAS_USADAS, PLACAS_BUENAS, PLACAS_MALAS, [USER]
 		FROM procesos2
 		WHERE ID = @p1
-	`, reqBody.ID).Scan(&currentPlacas, &currentPlacasUsadas, &currentPlacasBuenas, &currentPlacasMalas)
+	`, reqBody.ID).Scan(&currentPlacas, &currentPlacasUsadas, &currentPlacasBuenas, &currentPlacasMalas, &currentUser)
 	if err == sql.ErrNoRows {
 		tx.Rollback()
 		c.JSON(http.StatusNotFound, gin.H{"error": "Record not found"})
@@ -99,6 +99,11 @@ func updateHandler(c *gin.Context) {
 		log.Println("Query error:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Query error"})
 		return
+	}
+
+	// Merge user if different
+	if currentUser != reqBody.User {
+		currentUser = currentUser + ", " + reqBody.User
 	}
 
 	// Parse JSON fields
@@ -165,7 +170,7 @@ func updateHandler(c *gin.Context) {
 			NUMERO_PERSONAS = @p9
 		WHERE ID = @p10
 	`, reqBody.SubtractValue, string(placasStr), string(placasUsadasStr), string(placasBuenasStr), string(placasMalasStr),
-		reqBody.TiempoTotal, reqBody.User, reqBody.StockCant, reqBody.NumeroPersonas, reqBody.ID)
+		reqBody.TiempoTotal, currentUser, reqBody.StockCant, reqBody.NumeroPersonas, reqBody.ID)
 	if err != nil {
 		tx.Rollback()
 		log.Println("Update error:", err)
