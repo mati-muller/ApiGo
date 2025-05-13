@@ -15,6 +15,7 @@ import (
 
 func Reportes(r *gin.Engine) {
 	r.POST("/reportes/update", updateHandler)
+	r.GET(("/reportes/historial"), getHistorialHandler)
 }
 
 func updateHandler(c *gin.Context) {
@@ -395,4 +396,65 @@ func deductInventory(tx *sql.Tx, placa string, quantityToDeduct int) error {
 	}
 
 	return nil
+}
+
+func getHistorialHandler(c *gin.Context) {
+	// Query the HISTORIAL table with a JOIN on procesos
+	rows, err := db.Query(`
+        SELECT h.ID, h.ID_PROCESO, h.CANTIDAD, h.PLACA, h.PLACAS_USADAS, h.PLACAS_BUENAS, h.PLACAS_MALAS, 
+               h.TIEMPO_TOTAL, h.NUMERO_PERSONAS, h.STOCK, h.[USER], h.STOCK_CANT,
+               p.NVNUMERO, p.FECHA_ENTREGA, p.CODPROD, p.NVCANT, p.DETPROD, p.PROCESO
+        FROM HISTORIAL h
+        JOIN procesos p ON h.ID_PROCESO = p.ID
+    `)
+	if err != nil {
+		log.Println("Error querying HISTORIAL table with JOIN:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error querying HISTORIAL table with JOIN"})
+		return
+	}
+	defer rows.Close()
+
+	// Parse rows into a slice of maps
+	var historial []map[string]interface{}
+	for rows.Next() {
+		var (
+			id, idProceso, cantidad, numeroPersonas, stockCant, nvnumero, nvcant                                 int
+			placa, placasUsadas, placasBuenas, placasMalas, stock, user, fechaEntrega, codprod, detprod, proceso string
+			tiempoTotal                                                                                          float64
+		)
+		if err := rows.Scan(&id, &idProceso, &cantidad, &placa, &placasUsadas, &placasBuenas, &placasMalas, &tiempoTotal, &numeroPersonas, &stock, &user, &stockCant, &nvnumero, &fechaEntrega, &codprod, &nvcant, &detprod, &proceso); err != nil {
+			log.Println("Error scanning row:", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error scanning row"})
+			return
+		}
+
+		historial = append(historial, map[string]interface{}{
+			"ID":              id,
+			"ID_PROCESO":      idProceso,
+			"CANTIDAD":        cantidad,
+			"PLACA":           placa,
+			"PLACAS_USADAS":   placasUsadas,
+			"PLACAS_BUENAS":   placasBuenas,
+			"PLACAS_MALAS":    placasMalas,
+			"TIEMPO_TOTAL":    tiempoTotal,
+			"NUMERO_PERSONAS": numeroPersonas,
+			"STOCK":           stock,
+			"USER":            user,
+			"STOCK_CANT":      stockCant,
+			"NVNUMERO":        nvnumero,
+			"FECHA_ENTREGA":   fechaEntrega,
+			"CODPROD":         codprod,
+			"NVCANT":          nvcant,
+			"DETPROD":         detprod,
+			"PROCESO":         proceso,
+		})
+	}
+
+	if err := rows.Err(); err != nil {
+		log.Println("Error iterating rows:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error iterating rows"})
+		return
+	}
+
+	c.JSON(http.StatusOK, historial)
 }
