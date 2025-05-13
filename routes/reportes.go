@@ -178,6 +178,24 @@ func updateHandler(c *gin.Context) {
 		return
 	}
 
+	// Insert data into HISTORIAL table
+	_, err = tx.Exec(`
+		INSERT INTO HISTORIAL (
+			ID_PROCESO, CANTIDAD, PLACA, PLACAS_USADAS, PLACAS_BUENAS, PLACAS_MALAS, 
+			TIEMPO_TOTAL, NUMERO_PERSONAS, STOCK, [USER], STOCK_CANT
+		) VALUES (
+			@p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11
+		)
+	`, reqBody.ID, reqBody.SubtractValue, string(placasStr), string(placasUsadasStr),
+		string(placasBuenasStr), string(placasMalasStr), reqBody.TiempoTotal,
+		reqBody.NumeroPersonas, "", currentUser, reqBody.StockCant)
+	if err != nil {
+		tx.Rollback()
+		log.Println("Insert into HISTORIAL error:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Insert into HISTORIAL error"})
+		return
+	}
+
 	// Handle Add to Stock
 	if reqBody.AddToStock {
 		if reqBody.StockCant <= 0 {
