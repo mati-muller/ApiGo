@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/exp/slices"
 )
 
 func SetupProcesosRoutes(r *gin.Engine) {
@@ -274,6 +275,17 @@ func getNV(c *gin.Context) {
 	for _, nv := range groupedData {
 		result = append(result, *nv)
 	}
+
+	// Ordenar el resultado por NVNUMERO de menor a mayor
+	slices.SortFunc(result, func(a, b NV) int {
+		if a.NVNUMERO < b.NVNUMERO {
+			return -1
+		}
+		if a.NVNUMERO > b.NVNUMERO {
+			return 1
+		}
+		return 0
+	})
 
 	c.JSON(http.StatusOK, result)
 }
