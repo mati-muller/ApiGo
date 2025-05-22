@@ -209,6 +209,9 @@ func getNV(c *gin.Context) {
 			p.NOMAUX,
 			p.PROCESO, 
 			p2.ESTADO_PROC, 
+			p.CANTPROD,
+			p2.CANT_A_PROD,
+			p.FECHA_ENTREGA,
 			(p.CANTPROD - p2.CANT_A_PROD) AS cantidad_producida
 		FROM procesos p
 		JOIN procesos2 p2 ON p.ID = p2.ID
@@ -224,6 +227,9 @@ func getNV(c *gin.Context) {
 	type Proceso struct {
 		PROCESO           string `json:"PROCESO"`
 		ESTADO_PROC       string `json:"ESTADO_PROC"`
+		CANTPROD          int    `json:"CANTPROD"`
+		CANT_A_PROD       int    `json:"CANT_A_PROD"`
+		FECHA_ENTREGA     string `json:"FECHA_ENTREGA"`
 		CantidadProducida int    `json:"cantidad_producida"`
 	}
 
@@ -237,10 +243,10 @@ func getNV(c *gin.Context) {
 	groupedData := map[string]*NV{}
 
 	for rows.Next() {
-		var nvnumero, detprod, nomaux, proceso, estadoProc string
-		var cantidadProducida int
+		var nvnumero, detprod, nomaux, proceso, estadoProc, fechaEntrega string
+		var cantprod, cantAProd, cantidadProducida int
 
-		if err := rows.Scan(&nvnumero, &detprod, &nomaux, &proceso, &estadoProc, &cantidadProducida); err != nil {
+		if err := rows.Scan(&nvnumero, &detprod, &nomaux, &proceso, &estadoProc, &cantprod, &cantAProd, &fechaEntrega, &cantidadProducida); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
@@ -257,6 +263,9 @@ func getNV(c *gin.Context) {
 		groupedData[nvnumero].Procesos = append(groupedData[nvnumero].Procesos, Proceso{
 			PROCESO:           proceso,
 			ESTADO_PROC:       estadoProc,
+			CANTPROD:          cantprod,
+			CANT_A_PROD:       cantAProd,
+			FECHA_ENTREGA:     fechaEntrega,
 			CantidadProducida: cantidadProducida,
 		})
 	}
