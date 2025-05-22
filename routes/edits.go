@@ -2,7 +2,6 @@ package routes
 
 import (
 	"database/sql"
-	"encoding/json"
 	"net/http"
 	"os"
 
@@ -18,41 +17,18 @@ func SetupEdits(r *gin.Engine) {
 }
 
 func editTroquelado(c *gin.Context) {
-	editTable(c, "TROQUELADO")
-}
-
-func editEmplacado(c *gin.Context) {
-	editTable(c, "EMPLACADO")
-}
-
-func editTrozado(c *gin.Context) {
-	editTable(c, "TROZADO")
-}
-
-func editEncolado(c *gin.Context) {
-	editTable(c, "ENCOLADO")
-}
-
-func editTable(c *gin.Context, tableName string) {
-	var requestBody struct {
-		ID              int             `json:"ID"`
-		CANT_A_FABRICAR int             `json:"CANT_A_FABRICAR"`
-		PLACAS_A_USAR   json.RawMessage `json:"PLACAS_A_USAR"`
-		CANTIDAD_PLACAS json.RawMessage `json:"CANTIDAD_PLACAS"`
+	type request struct {
+		ID                int      `json:"ID"`
+		CANT_A_FABRICAR   int      `json:"CANT_A_FABRICAR"`
+		TransformedPlacas []string `json:"transformedPlacas"`
+		PlacasUsadas      []int    `json:"placasUsadas"`
 	}
-
-	if err := c.ShouldBindJSON(&requestBody); err != nil {
+	var req request
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
 
-	// Validate JSON structure
-	if !json.Valid(requestBody.PLACAS_A_USAR) || !json.Valid(requestBody.CANTIDAD_PLACAS) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON structure for PLACAS_A_USAR or CANTIDAD_PLACAS"})
-		return
-	}
-
-	// Establish database connection
 	db, err := sql.Open("sqlserver", "Server="+os.Getenv("SQL_SERVER")+"\\"+os.Getenv("SQL_INSTANCE")+";Database="+os.Getenv("SQL_DATABASE2")+";User Id="+os.Getenv("SQL_USER")+";Password="+os.Getenv("SQL_PASSWORD")+";Encrypt=disable")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to connect to database"})
@@ -60,24 +36,127 @@ func editTable(c *gin.Context, tableName string) {
 	}
 	defer db.Close()
 
-	// Execute the update query
-	query := `
-		UPDATE ` + tableName + `
-		SET CANT_A_FABRICAR = @CANT_A_FABRICAR,
-			PLACAS_A_USAR = @PLACAS_A_USAR,
-			CANTIDAD_PLACAS = @CANTIDAD_PLACAS
-		WHERE ID = @ID
-	`
-	_, err = db.Exec(query,
-		sql.Named("ID", requestBody.ID),
-		sql.Named("CANT_A_FABRICAR", requestBody.CANT_A_FABRICAR),
-		sql.Named("PLACAS_A_USAR", string(requestBody.PLACAS_A_USAR)),
-		sql.Named("CANTIDAD_PLACAS", string(requestBody.CANTIDAD_PLACAS)),
+	_, err = db.Exec(`UPDATE TROQUELADO SET CANT_A_FABRICAR = @CANT_A_FABRICAR, PLACAS_A_USAR = @PLACAS_A_USAR, CANTIDAD_PLACAS = @CANTIDAD_PLACAS WHERE ID = @ID`,
+		sql.Named("CANT_A_FABRICAR", req.CANT_A_FABRICAR),
+		sql.Named("PLACAS_A_USAR", toJSON(req.TransformedPlacas)),
+		sql.Named("CANTIDAD_PLACAS", toJSON(req.PlacasUsadas)),
+		sql.Named("ID", req.ID),
 	)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to execute update query"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update TROQUELADO"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Updated " + tableName})
+	c.JSON(http.StatusOK, gin.H{"message": "TROQUELADO updated"})
 }
+
+func editEmplacado(c *gin.Context) {
+	type request struct {
+		ID                int      `json:"ID"`
+		CANT_A_FABRICAR   int      `json:"CANT_A_FABRICAR"`
+		TransformedPlacas []string `json:"transformedPlacas"`
+		PlacasUsadas      []int    `json:"placasUsadas"`
+	}
+	var req request
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	db, err := sql.Open("sqlserver", "Server="+os.Getenv("SQL_SERVER")+"\\"+os.Getenv("SQL_INSTANCE")+";Database="+os.Getenv("SQL_DATABASE2")+";User Id="+os.Getenv("SQL_USER")+";Password="+os.Getenv("SQL_PASSWORD")+";Encrypt=disable")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to connect to database"})
+		return
+	}
+	defer db.Close()
+
+	_, err = db.Exec(`UPDATE EMPLACADO SET CANT_A_FABRICAR = @CANT_A_FABRICAR, PLACAS_A_USAR = @PLACAS_A_USAR, CANTIDAD_PLACAS = @CANTIDAD_PLACAS WHERE ID = @ID`,
+		sql.Named("CANT_A_FABRICAR", req.CANT_A_FABRICAR),
+		sql.Named("PLACAS_A_USAR", toJSON(req.TransformedPlacas)),
+		sql.Named("CANTIDAD_PLACAS", toJSON(req.PlacasUsadas)),
+		sql.Named("ID", req.ID),
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update EMPLACADO"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "EMPLACADO updated"})
+}
+
+func editTrozado(c *gin.Context) {
+	type request struct {
+		ID                int      `json:"ID"`
+		CANT_A_FABRICAR   int      `json:"CANT_A_FABRICAR"`
+		TransformedPlacas []string `json:"transformedPlacas"`
+		PlacasUsadas      []int    `json:"placasUsadas"`
+	}
+	var req request
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	db, err := sql.Open("sqlserver", "Server="+os.Getenv("SQL_SERVER")+"\\"+os.Getenv("SQL_INSTANCE")+";Database="+os.Getenv("SQL_DATABASE2")+";User Id="+os.Getenv("SQL_USER")+";Password="+os.Getenv("SQL_PASSWORD")+";Encrypt=disable")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to connect to database"})
+		return
+	}
+	defer db.Close()
+
+	_, err = db.Exec(`UPDATE TROZADO SET CANT_A_FABRICAR = @CANT_A_FABRICAR, PLACAS_A_USAR = @PLACAS_A_USAR, CANTIDAD_PLACAS = @CANTIDAD_PLACAS WHERE ID = @ID`,
+		sql.Named("CANT_A_FABRICAR", req.CANT_A_FABRICAR),
+		sql.Named("PLACAS_A_USAR", toJSON(req.TransformedPlacas)),
+		sql.Named("CANTIDAD_PLACAS", toJSON(req.PlacasUsadas)),
+		sql.Named("ID", req.ID),
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update TROZADO"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "TROZADO updated"})
+}
+
+func editEncolado(c *gin.Context) {
+	type request struct {
+		ID                int      `json:"ID"`
+		CANT_A_FABRICAR   int      `json:"CANT_A_FABRICAR"`
+		TransformedPlacas []string `json:"transformedPlacas"`
+		PlacasUsadas      []int    `json:"placasUsadas"`
+	}
+	var req request
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	db, err := sql.Open("sqlserver", "Server="+os.Getenv("SQL_SERVER")+"\\"+os.Getenv("SQL_INSTANCE")+";Database="+os.Getenv("SQL_DATABASE2")+";User Id="+os.Getenv("SQL_USER")+";Password="+os.Getenv("SQL_PASSWORD")+";Encrypt=disable")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to connect to database"})
+		return
+	}
+	defer db.Close()
+
+	_, err = db.Exec(`UPDATE ENCOLADO SET CANT_A_FABRICAR = @CANT_A_FABRICAR, PLACAS_A_USAR = @PLACAS_A_USAR, CANTIDAD_PLACAS = @CANTIDAD_PLACAS WHERE ID = @ID`,
+		sql.Named("CANT_A_FABRICAR", req.CANT_A_FABRICAR),
+		sql.Named("PLACAS_A_USAR", toJSON(req.TransformedPlacas)),
+		sql.Named("CANTIDAD_PLACAS", toJSON(req.PlacasUsadas)),
+		sql.Named("ID", req.ID),
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update ENCOLADO"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "ENCOLADO updated"})
+}
+
+// Utilidad para serializar a JSON (solo si no existe ya en el paquete)
+// func toJSON(v interface{}) string {
+// 	b, err := json.Marshal(v)
+// 	if err != nil {
+// 		return "[]"
+// 	}
+// 	return string(b)
+// }
