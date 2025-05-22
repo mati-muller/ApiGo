@@ -19,6 +19,7 @@ func SetupProcAppRoutes(r *gin.Engine) {
 	r.GET("/app/encolado2", getEncolado2)
 	r.GET("/app/multiple", getMultiple)
 	r.GET("/app/multiple2", getMultiple2)
+	r.GET("/app/pegado", getPegado)
 }
 
 func queryDatabase(c *gin.Context, query string) {
@@ -115,6 +116,16 @@ func getMultiple2(c *gin.Context) {
 		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS
 		FROM procesos p
 		JOIN MULTIPLE2 p2 ON p.ID = p2.ID
+		ORDER BY p2.PRIORITY
+	`
+	queryDatabase(c, query)
+}
+func getPegado(c *gin.Context) {
+	query := `
+		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
+		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS
+		FROM procesos p
+		JOIN PEGADO p2 ON p.ID = p2.ID
 		ORDER BY p2.PRIORITY
 	`
 	queryDatabase(c, query)
