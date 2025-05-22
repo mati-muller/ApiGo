@@ -19,6 +19,7 @@ func SetupProcesosRoutes(r *gin.Engine) {
 	r.GET("/procesos/pendientes-multiple", getPendientesMultiple)
 	r.GET("/procesos/pendientes-otro", getPendientesOtro)
 	r.GET("/procesos/nv", getNV)
+	r.GET("/procesosapp/encolado", getEncoladoProcesos)
 }
 
 // queryDatabase is imported from procapp.go
@@ -190,6 +191,12 @@ func getPendientesOtro(c *gin.Context) {
 		FROM REPORTES.dbo.procesos p
 		JOIN REPORTES.dbo.procesos2 p2 ON p.ID = p2.ID
 		WHERE p2.ESTADO_PROC = 'PENDIENTE' AND p.PROCESO = 'OTRO'
+	`
+	queryDatabase(c, query)
+}
+func getEncoladoProcesos(c *gin.Context) {
+	query := `
+		SELECT * FROM ENCOLADO
 	`
 	queryDatabase(c, query)
 }
