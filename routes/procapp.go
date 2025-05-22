@@ -20,6 +20,7 @@ func SetupProcAppRoutes(r *gin.Engine) {
 	r.GET("/app/multiple", getMultiple)
 	r.GET("/app/multiple2", getMultiple2)
 	r.GET("/app/pegado", getPegado)
+	r.GET("/app/trozado", getTrozado)
 }
 
 func queryDatabase(c *gin.Context, query string) {
@@ -126,6 +127,16 @@ func getPegado(c *gin.Context) {
 		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS
 		FROM procesos p
 		JOIN PEGADO p2 ON p.ID = p2.ID
+		ORDER BY p2.PRIORITY
+	`
+	queryDatabase(c, query)
+}
+func getTrozado(c *gin.Context) {
+	query := `
+		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
+		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS
+		FROM procesos p
+		JOIN TROZADO p2 ON p.ID = p2.ID
 		ORDER BY p2.PRIORITY
 	`
 	queryDatabase(c, query)
@@ -686,6 +697,83 @@ func SetupPostRoutes(r *gin.Engine) {
 		}
 
 		c.JSON(201, gin.H{"message": "Inserted into PEGADO"})
+	})
+	r.POST("/app/update-trozado", func(c *gin.Context) {
+		var payload struct {
+			Items []struct {
+				ID                int      `json:"ID"`
+				CANT_A_FABRICAR   int      `json:"CANT_A_FABRICAR"`
+				TransformedPlacas []string `json:"transformedPlacas"`
+				PlacasUsadas      []int    `json:"placasUsadas"`
+			} `json:"items"`
+		}
+		if err := c.ShouldBindJSON(&payload); err != nil {
+			log.Printf("Failed to bind JSON: %v", err)
+			c.JSON(400, gin.H{"error": "Invalid JSON payload", "details": err.Error()})
+			return
+		}
+
+		tx, err := db.Begin()
+		if err != nil {
+			log.Printf("Failed to begin transaction: %v", err)
+			c.JSON(500, gin.H{"error": "Failed to begin transaction"})
+			return
+		}
+
+		defer func() {
+			if p := recover(); p != nil {
+				log.Printf("Panic during transaction: %v", p)
+				tx.Rollback()
+				c.JSON(500, gin.H{"error": "Transaction rolled back due to panic"})
+			}
+		}()
+
+		_, err = tx.Exec("DELETE FROM TROZADO")
+		if err != nil {
+			log.Printf("Failed to delete from TROZADO: %v", err)
+			tx.Rollback()
+			c.JSON(500, gin.H{"error": "Failed to delete from TROZADO"})
+			return
+		}
+
+		priority := 1
+		for _, item := range payload.Items {
+			if item.ID == 0 || item.CANT_A_FABRICAR == 0 {
+				log.Printf("Invalid data structure: %+v", item)
+				tx.Rollback()
+				c.JSON(400, gin.H{"error": "Invalid data structure", "item": item})
+				return
+			}
+
+			if len(item.TransformedPlacas) == 0 && len(item.PlacasUsadas) == 0 {
+				log.Printf("Warning: Empty TransformedPlacas and PlacasUsadas for item ID %d", item.ID)
+			}
+
+			_, err = tx.Exec(
+				`INSERT INTO TROZADO (ID, CANT_A_FABRICAR, PRIORITY, PLACAS_A_USAR, CANTIDAD_PLACAS) 
+				VALUES (@ID, @CANT_A_FABRICAR, @PRIORITY, @PLACAS_A_USAR, @CANTIDAD_PLACAS)`,
+				sql.Named("ID", item.ID),
+				sql.Named("CANT_A_FABRICAR", item.CANT_A_FABRICAR),
+				sql.Named("PRIORITY", priority),
+				sql.Named("PLACAS_A_USAR", toJSON(item.TransformedPlacas)),
+				sql.Named("CANTIDAD_PLACAS", toJSON(item.PlacasUsadas)),
+			)
+			if err != nil {
+				log.Printf("Failed to insert into TROZADO: %v", err)
+				tx.Rollback()
+				c.JSON(500, gin.H{"error": "Failed to insert into TROZADO"})
+				return
+			}
+			priority++
+		}
+
+		if err := tx.Commit(); err != nil {
+			log.Printf("Failed to commit transaction: %v", err)
+			c.JSON(500, gin.H{"error": "Failed to commit transaction"})
+			return
+		}
+
+		c.JSON(201, gin.H{"message": "Inserted into TROZADO"})
 	})
 }
 
