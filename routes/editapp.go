@@ -2,6 +2,8 @@ package routes
 
 import (
 	"database/sql"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 
@@ -9,11 +11,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupEditsapp(r *gin.Engine) {
-	r.POST("/edit-troquelado", editTroqueladoapp)
-	r.POST("/edit-emplacado", editEmplacadoapp)
-	r.POST("/edit-trozado", editTrozadoapp)
-	r.POST("/edit-encolado", editEncoladoapp)
+func SetupEditsApp(r *gin.Engine) {
+	r.POST("/edit-app-troquelado", editTroqueladoapp)
+	r.POST("/edit-app-emplacado", editEmplacadoapp)
+	r.POST("/edit-app-trozado", editTrozadoapp)
+	r.POST("/edit-app-encolado", editEncoladoapp)
 }
 
 func editTroqueladoapp(c *gin.Context) {
@@ -29,6 +31,9 @@ func editTroqueladoapp(c *gin.Context) {
 		return
 	}
 
+	// Log de los datos recibidos
+	fmt.Printf("Datos recibidos en %s: ID=%d, Cantidad=%d, Placas=%v, PlacasBuenas=%v\n", c.FullPath(), req.ID, req.Cantidad, req.Placas, req.PlacasBuenas)
+
 	db, err := sql.Open("sqlserver", "Server="+os.Getenv("SQL_SERVER")+"\\"+os.Getenv("SQL_INSTANCE")+";Database="+os.Getenv("SQL_DATABASE2")+";User Id="+os.Getenv("SQL_USER")+";Password="+os.Getenv("SQL_PASSWORD")+";Encrypt=disable")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to connect to database"})
@@ -37,7 +42,7 @@ func editTroqueladoapp(c *gin.Context) {
 	defer db.Close()
 
 	// Actualizar CANT_A_FABRICAR y CANTIDAD_PRODUCIDA como antes
-	query := `UPDATE PROCESOS SET CANT_A_FABRICAR = CASE WHEN CANT_A_FABRICAR - @cantidad < 0 THEN 0 ELSE CANT_A_FABRICAR - @cantidad END, CANTIDAD_PRODUCIDA = ISNULL(CANTIDAD_PRODUCIDA,0) + @cantidad WHERE ID = @id`
+	query := `UPDATE TROQUELADO SET CANT_A_FABRICAR = CASE WHEN CANT_A_FABRICAR - @cantidad < 0 THEN 0 ELSE CANT_A_FABRICAR - @cantidad END, CANTIDAD_PRODUCIDA = ISNULL(CANTIDAD_PRODUCIDA,0) + @cantidad WHERE ID = @id`
 	_, err = db.Exec(query, sql.Named("cantidad", req.Cantidad), sql.Named("id", req.ID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update process"})
@@ -50,8 +55,8 @@ func editTroqueladoapp(c *gin.Context) {
 			continue
 		}
 		cantidadBuena := req.PlacasBuenas[i]
-		// Solo restar si la placa existe
-		updatePlacaQuery := `UPDATE PROCESOS SET CANTIDAD_PLACAS = CASE WHEN CANTIDAD_PLACAS - @cantidadBuena < 0 THEN 0 ELSE CANTIDAD_PLACAS - @cantidadBuena END WHERE PLACA = @placa`
+		// Restar solo la cantidad de placas buenas a CANTIDAD_PLACAS
+		updatePlacaQuery := `UPDATE TROQUELADO SET CANTIDAD_PLACAS = CASE WHEN CANTIDAD_PLACAS - @cantidadBuena < 0 THEN 0 ELSE CANTIDAD_PLACAS - @cantidadBuena END WHERE PLACA = @placa`
 		res, err := db.Exec(updatePlacaQuery, sql.Named("cantidadBuena", cantidadBuena), sql.Named("placa", placa))
 		if err != nil {
 			continue // Si hay error, seguir con la siguiente
@@ -78,6 +83,9 @@ func editEmplacadoapp(c *gin.Context) {
 		return
 	}
 
+	// Log de los datos recibidos
+	fmt.Printf("Datos recibidos en %s: ID=%d, Cantidad=%d, Placas=%v, PlacasBuenas=%v\n", c.FullPath(), req.ID, req.Cantidad, req.Placas, req.PlacasBuenas)
+
 	db, err := sql.Open("sqlserver", "Server="+os.Getenv("SQL_SERVER")+"\\"+os.Getenv("SQL_INSTANCE")+";Database="+os.Getenv("SQL_DATABASE2")+";User Id="+os.Getenv("SQL_USER")+";Password="+os.Getenv("SQL_PASSWORD")+";Encrypt=disable")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to connect to database"})
@@ -85,7 +93,7 @@ func editEmplacadoapp(c *gin.Context) {
 	}
 	defer db.Close()
 
-	query := `UPDATE PROCESOS SET CANT_A_FABRICAR = CASE WHEN CANT_A_FABRICAR - @cantidad < 0 THEN 0 ELSE CANT_A_FABRICAR - @cantidad END, CANTIDAD_PRODUCIDA = ISNULL(CANTIDAD_PRODUCIDA,0) + @cantidad WHERE ID = @id`
+	query := `UPDATE EMPLACADO SET CANT_A_FABRICAR = CASE WHEN CANT_A_FABRICAR - @cantidad < 0 THEN 0 ELSE CANT_A_FABRICAR - @cantidad END, CANTIDAD_PRODUCIDA = ISNULL(CANTIDAD_PRODUCIDA,0) + @cantidad WHERE ID = @id`
 	_, err = db.Exec(query, sql.Named("cantidad", req.Cantidad), sql.Named("id", req.ID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update process"})
@@ -97,7 +105,7 @@ func editEmplacadoapp(c *gin.Context) {
 			continue
 		}
 		cantidadBuena := req.PlacasBuenas[i]
-		updatePlacaQuery := `UPDATE PROCESOS SET CANTIDAD_PLACAS = CASE WHEN CANTIDAD_PLACAS - @cantidadBuena < 0 THEN 0 ELSE CANTIDAD_PLACAS - @cantidadBuena END WHERE PLACA = @placa`
+		updatePlacaQuery := `UPDATE EMPLACADO SET CANTIDAD_PLACAS = CASE WHEN CANTIDAD_PLACAS - @cantidadBuena < 0 THEN 0 ELSE CANTIDAD_PLACAS - @cantidadBuena END WHERE PLACA = @placa`
 		res, err := db.Exec(updatePlacaQuery, sql.Named("cantidadBuena", cantidadBuena), sql.Named("placa", placa))
 		if err != nil {
 			continue
@@ -124,6 +132,9 @@ func editTrozadoapp(c *gin.Context) {
 		return
 	}
 
+	// Log de los datos recibidos
+	fmt.Printf("Datos recibidos en %s: ID=%d, Cantidad=%d, Placas=%v, PlacasBuenas=%v\n", c.FullPath(), req.ID, req.Cantidad, req.Placas, req.PlacasBuenas)
+
 	db, err := sql.Open("sqlserver", "Server="+os.Getenv("SQL_SERVER")+"\\"+os.Getenv("SQL_INSTANCE")+";Database="+os.Getenv("SQL_DATABASE2")+";User Id="+os.Getenv("SQL_USER")+";Password="+os.Getenv("SQL_PASSWORD")+";Encrypt=disable")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to connect to database"})
@@ -131,7 +142,7 @@ func editTrozadoapp(c *gin.Context) {
 	}
 	defer db.Close()
 
-	query := `UPDATE PROCESOS SET CANT_A_FABRICAR = CASE WHEN CANT_A_FABRICAR - @cantidad < 0 THEN 0 ELSE CANT_A_FABRICAR - @cantidad END, CANTIDAD_PRODUCIDA = ISNULL(CANTIDAD_PRODUCIDA,0) + @cantidad WHERE ID = @id`
+	query := `UPDATE TROZADO SET CANT_A_FABRICAR = CASE WHEN CANT_A_FABRICAR - @cantidad < 0 THEN 0 ELSE CANT_A_FABRICAR - @cantidad END, CANTIDAD_PRODUCIDA = ISNULL(CANTIDAD_PRODUCIDA,0) + @cantidad WHERE ID = @id`
 	_, err = db.Exec(query, sql.Named("cantidad", req.Cantidad), sql.Named("id", req.ID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update process"})
@@ -143,7 +154,7 @@ func editTrozadoapp(c *gin.Context) {
 			continue
 		}
 		cantidadBuena := req.PlacasBuenas[i]
-		updatePlacaQuery := `UPDATE PROCESOS SET CANTIDAD_PLACAS = CASE WHEN CANTIDAD_PLACAS - @cantidadBuena < 0 THEN 0 ELSE CANTIDAD_PLACAS - @cantidadBuena END WHERE PLACA = @placa`
+		updatePlacaQuery := `UPDATE TROZADO SET CANTIDAD_PLACAS = CASE WHEN CANTIDAD_PLACAS - @cantidadBuena < 0 THEN 0 ELSE CANTIDAD_PLACAS - @cantidadBuena END WHERE PLACA = @placa`
 		res, err := db.Exec(updatePlacaQuery, sql.Named("cantidadBuena", cantidadBuena), sql.Named("placa", placa))
 		if err != nil {
 			continue
@@ -170,6 +181,9 @@ func editEncoladoapp(c *gin.Context) {
 		return
 	}
 
+	// Log de los datos recibidos
+	fmt.Printf("Datos recibidos en %s: ID=%d, Cantidad=%d, Placas=%v, PlacasBuenas=%v\n", c.FullPath(), req.ID, req.Cantidad, req.Placas, req.PlacasBuenas)
+
 	db, err := sql.Open("sqlserver", "Server="+os.Getenv("SQL_SERVER")+"\\"+os.Getenv("SQL_INSTANCE")+";Database="+os.Getenv("SQL_DATABASE2")+";User Id="+os.Getenv("SQL_USER")+";Password="+os.Getenv("SQL_PASSWORD")+";Encrypt=disable")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to connect to database"})
@@ -177,27 +191,51 @@ func editEncoladoapp(c *gin.Context) {
 	}
 	defer db.Close()
 
-	query := `UPDATE PROCESOS SET CANT_A_FABRICAR = CASE WHEN CANT_A_FABRICAR - @cantidad < 0 THEN 0 ELSE CANT_A_FABRICAR - @cantidad END, CANTIDAD_PRODUCIDA = ISNULL(CANTIDAD_PRODUCIDA,0) + @cantidad WHERE ID = @id`
+	query := `UPDATE ENCOLADO SET CANT_A_FABRICAR = CASE WHEN CANT_A_FABRICAR - @cantidad < 0 THEN 0 ELSE CANT_A_FABRICAR - @cantidad END, CANTIDAD_PRODUCIDA = ISNULL(CANTIDAD_PRODUCIDA,0) + @cantidad WHERE ID = @id`
 	_, err = db.Exec(query, sql.Named("cantidad", req.Cantidad), sql.Named("id", req.ID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update process"})
 		return
 	}
 
-	for i, placa := range req.Placas {
-		if i >= len(req.PlacasBuenas) {
+	// Leer el valor actual de CANTIDAD_PLACAS para el ID recibido
+	var cantidadPlacasJSON string
+	err = db.QueryRow("SELECT CANTIDAD_PLACAS FROM ENCOLADO WHERE ID = @id", sql.Named("id", req.ID)).Scan(&cantidadPlacasJSON)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo leer CANTIDAD_PLACAS"})
+		return
+	}
+
+	// Parsear el JSON a un array de ints
+	var cantidadPlacasArr []int
+	err = json.Unmarshal([]byte(cantidadPlacasJSON), &cantidadPlacasArr)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "CANTIDAD_PLACAS no es un array JSON válido"})
+		return
+	}
+
+	// Restar placas buenas según índice
+	for i := range req.Placas {
+		if i >= len(req.PlacasBuenas) || i >= len(cantidadPlacasArr) {
 			continue
 		}
-		cantidadBuena := req.PlacasBuenas[i]
-		updatePlacaQuery := `UPDATE PROCESOS SET CANTIDAD_PLACAS = CASE WHEN CANTIDAD_PLACAS - @cantidadBuena < 0 THEN 0 ELSE CANTIDAD_PLACAS - @cantidadBuena END WHERE PLACA = @placa`
-		res, err := db.Exec(updatePlacaQuery, sql.Named("cantidadBuena", cantidadBuena), sql.Named("placa", placa))
-		if err != nil {
-			continue
+		cantidadPlacasArr[i] -= req.PlacasBuenas[i]
+		if cantidadPlacasArr[i] < 0 {
+			cantidadPlacasArr[i] = 0
 		}
-		nRows, _ := res.RowsAffected()
-		if nRows == 0 {
-			continue
-		}
+	}
+
+	// Guardar el array actualizado como JSON
+	nuevaCantidadPlacasJSON, err := json.Marshal(cantidadPlacasArr)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo serializar el array actualizado"})
+		return
+	}
+
+	_, err = db.Exec("UPDATE ENCOLADO SET CANTIDAD_PLACAS = @nuevo WHERE ID = @id", sql.Named("nuevo", string(nuevaCantidadPlacasJSON)), sql.Named("id", req.ID))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo actualizar CANTIDAD_PLACAS"})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Process updated"})
