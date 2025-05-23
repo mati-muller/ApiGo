@@ -177,6 +177,11 @@ func updateHandler(c *gin.Context) {
 	}
 
 	// Insert data into HISTORIAL table
+	placasStr, _ = json.Marshal(reqBody.Placas)
+	placasUsadasStr, _ = json.Marshal(reqBody.PlacasUsadas)
+	placasBuenasStr, _ = json.Marshal(reqBody.PlacasBuenas)
+	placasMalasStr, _ = json.Marshal(reqBody.PlacasMalas)
+
 	_, err = tx.Exec(`
 		INSERT INTO HISTORIAL (
 			ID_PROCESO, CANTIDAD, PLACA, PLACAS_USADAS, PLACAS_BUENAS, PLACAS_MALAS, 
@@ -186,7 +191,7 @@ func updateHandler(c *gin.Context) {
 		)
 	`, reqBody.ID, reqBody.SubtractValue, string(placasStr), string(placasUsadasStr),
 		string(placasBuenasStr), string(placasMalasStr), reqBody.TiempoTotal,
-		reqBody.NumeroPersonas, "", currentUser, reqBody.StockCant)
+		reqBody.NumeroPersonas, "", reqBody.User, reqBody.StockCant)
 	if err != nil {
 		tx.Rollback()
 		log.Println("Insert into HISTORIAL error:", err)
