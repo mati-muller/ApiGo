@@ -64,6 +64,7 @@ func registerUser(c *gin.Context) {
 		return
 	}
 
+	// El ID será autoincremental, no se pasa en el INSERT
 	query := `INSERT INTO REPORTES.dbo.users (USERNAME, PASSWORD, NOMBRE, APELLIDO, ROL, procesos) 
 			OUTPUT INSERTED.ID VALUES (@Username, @Password, @Nombre, @Apellido, @Rol, NULL)`
 	var userID int
