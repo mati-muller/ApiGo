@@ -405,7 +405,7 @@ func getHistorialHandler(c *gin.Context) {
 	rows, err := db.Query(`
         SELECT h.ID, h.ID_PROCESO, h.CANTIDAD, h.PLACA, h.PLACAS_USADAS, h.PLACAS_BUENAS, h.PLACAS_MALAS, 
                h.TIEMPO_TOTAL, h.NUMERO_PERSONAS, h.STOCK, h.[USER], h.STOCK_CANT,
-               p.NVNUMERO, p.FECHA_ENTREGA, p.CODPROD, p.NVCANT, p.DETPROD, p.PROCESO, h.FECHA
+               p.NVNUMERO, p.FECHA_ENTREGA, p.NOMAUX, p.NVCANT, p.DETPROD, p.PROCESO, h.FECHA
         FROM HISTORIAL h
         JOIN procesos p ON h.ID_PROCESO = p.ID
     `)
