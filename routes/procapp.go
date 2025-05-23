@@ -18,6 +18,10 @@ func SetupProcAppRoutes(r *gin.Engine) {
 	r.GET("/app/multiple2", getMultiple2)
 	r.GET("/app/pegado", getPegado)
 	r.GET("/app/trozado", getTrozado)
+	r.GET("/app/impresion", getImpresion)
+	r.GET("/app/calado", getCalado)
+	r.GET("/app/plizado", getPlizado)
+
 }
 
 func queryDatabase(c *gin.Context, query string) {
@@ -134,6 +138,36 @@ func getTrozado(c *gin.Context) {
 		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS
 		FROM procesos p
 		JOIN TROZADO p2 ON p.ID = p2.ID
+		ORDER BY p2.PRIORITY
+	`
+	queryDatabase(c, query)
+}
+func getImpresion(c *gin.Context) {
+	query := `
+		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
+		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS
+		FROM procesos p
+		JOIN IMPRESION p2 ON p.ID = p2.ID
+		ORDER BY p2.PRIORITY
+	`
+	queryDatabase(c, query)
+}
+func getCalado(c *gin.Context) {
+	query := `
+		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
+		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS
+		FROM procesos p
+		JOIN CALADO p2 ON p.ID = p2.ID
+		ORDER BY p2.PRIORITY
+	`
+	queryDatabase(c, query)
+}
+func getPlizado(c *gin.Context) {
+	query := `
+		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
+		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS
+		FROM procesos p
+		JOIN PLIZADO p2 ON p.ID = p2.ID
 		ORDER BY p2.PRIORITY
 	`
 	queryDatabase(c, query)
