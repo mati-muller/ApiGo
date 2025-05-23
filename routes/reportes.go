@@ -405,7 +405,7 @@ func getHistorialHandler(c *gin.Context) {
 	rows, err := db.Query(`
         SELECT h.ID, h.ID_PROCESO, h.CANTIDAD, h.PLACA, h.PLACAS_USADAS, h.PLACAS_BUENAS, h.PLACAS_MALAS, 
                h.TIEMPO_TOTAL, h.NUMERO_PERSONAS, h.STOCK, h.[USER], h.STOCK_CANT,
-               p.NVNUMERO, p.FECHA_ENTREGA, p.CODPROD, p.NVCANT, p.DETPROD, p.PROCESO
+               p.NVNUMERO, p.FECHA_ENTREGA, p.CODPROD, p.NVCANT, p.DETPROD, p.PROCESO, h.FECHA
         FROM HISTORIAL h
         JOIN procesos p ON h.ID_PROCESO = p.ID
     `)
@@ -423,8 +423,9 @@ func getHistorialHandler(c *gin.Context) {
 			id, idProceso, cantidad, numeroPersonas, stockCant, nvnumero, nvcant                                 int
 			placa, placasUsadas, placasBuenas, placasMalas, stock, user, fechaEntrega, codprod, detprod, proceso string
 			tiempoTotal                                                                                          float64
+			fecha                                                                                                sql.NullString
 		)
-		if err := rows.Scan(&id, &idProceso, &cantidad, &placa, &placasUsadas, &placasBuenas, &placasMalas, &tiempoTotal, &numeroPersonas, &stock, &user, &stockCant, &nvnumero, &fechaEntrega, &codprod, &nvcant, &detprod, &proceso); err != nil {
+		if err := rows.Scan(&id, &idProceso, &cantidad, &placa, &placasUsadas, &placasBuenas, &placasMalas, &tiempoTotal, &numeroPersonas, &stock, &user, &stockCant, &nvnumero, &fechaEntrega, &codprod, &nvcant, &detprod, &proceso, &fecha); err != nil {
 			log.Println("Error scanning row:", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error scanning row"})
 			return
@@ -449,7 +450,11 @@ func getHistorialHandler(c *gin.Context) {
 			"NVCANT":          nvcant,
 			"DETPROD":         detprod,
 			"PROCESO":         proceso,
+			"FECHA":           nil,
 		})
+		if fecha.Valid {
+			historial[len(historial)-1]["FECHA"] = fecha.String
+		}
 	}
 
 	if err := rows.Err(); err != nil {
