@@ -51,10 +51,7 @@ func updateHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Field 'subtractValue' must be non-negative"})
 		return
 	}
-	if len(reqBody.Placas) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Field 'placas' must contain at least one item"})
-		return
-	}
+	// Eliminada la validación de placas vacías
 	if len(reqBody.PlacasUsadas) != len(reqBody.Placas) || len(reqBody.PlacasBuenas) != len(reqBody.Placas) || len(reqBody.PlacasMalas) != len(reqBody.Placas) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Mismatch in the number of Placas, PlacasUsadas, PlacasBuenas, and PlacasMalas"})
 		return
