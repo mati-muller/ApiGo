@@ -11,6 +11,7 @@ import (
 
 func SetupInventarioRoutes(r *gin.Engine) {
 	r.GET("/inventario/data", getInventarioData)
+	r.GET("/inventario/total", getInventarioTotal)
 	r.GET("/inventario/placas", getPlacasData)
 	r.POST("/inventario/addplaca", addPlacas)
 }
@@ -57,6 +58,44 @@ func getInventarioData(c *gin.Context) {
 	c.JSON(http.StatusOK, results)
 }
 
+func getInventarioTotal(c *gin.Context) {
+	db, err := sql.Open("sqlserver", "Server="+os.Getenv("SQL_SERVER")+"\\"+os.Getenv("SQL_INSTANCE")+";Database="+os.Getenv("SQL_DATABASE2")+";User="+os.Getenv("SQL_USER")+";Password="+os.Getenv("SQL_PASSWORD")+";Encrypt=disable")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to connect to database"})
+		return
+	}
+	defer db.Close()
+
+	// Add detailed error logging to capture database issues
+	rows, err := db.Query(`
+			SELECT 
+				inventario.placa, 
+				SUM(inventario.cantidad) AS Cantidad
+			FROM 
+				inventario
+			GROUP BY 
+				inventario.placa
+		`)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to execute query", "details": err.Error()})
+		return
+	}
+	defer rows.Close()
+
+	// Process query results
+	var results []map[string]interface{}
+	for rows.Next() {
+		var placa string
+		var cantidad int
+		if err := rows.Scan(&placa, &cantidad); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to scan row"})
+			return
+		}
+		results = append(results, gin.H{"placa": placa, "cantidad": cantidad})
+	}
+
+	c.JSON(http.StatusOK, results)
+}
 func getPlacasData(c *gin.Context) {
 	// Establish database connection
 	db, err := sql.Open("sqlserver", "Server="+os.Getenv("SQL_SERVER")+"\\"+os.Getenv("SQL_INSTANCE")+";Database="+os.Getenv("SQL_DATABASE2")+";User="+os.Getenv("SQL_USER")+";Password="+os.Getenv("SQL_PASSWORD")+";Encrypt=disable")

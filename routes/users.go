@@ -58,11 +58,6 @@ func registerUser(c *gin.Context) {
 		return
 	}
 
-	if user.Username == "" || user.Password == "" || user.Nombre == "" || user.Apellido == "" || user.Rol == "" {
-		handleError(c, http.StatusBadRequest, "All fields are required")
-		return
-	}
-
 	hashedPassword, err := hashPassword(user.Password)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, "Failed to hash password")
