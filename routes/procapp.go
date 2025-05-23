@@ -21,6 +21,7 @@ func SetupProcAppRoutes(r *gin.Engine) {
 	r.GET("/app/impresion", getImpresion)
 	r.GET("/app/calado", getCalado)
 	r.GET("/app/plizado", getPlizado)
+	r.GET("/app/emplacado", getEmplacado)
 
 }
 
@@ -168,6 +169,16 @@ func getPlizado(c *gin.Context) {
 		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS
 		FROM procesos p
 		JOIN PLIZADO p2 ON p.ID = p2.ID
+		ORDER BY p2.PRIORITY
+	`
+	queryDatabase(c, query)
+}
+func getEmplacado(c *gin.Context) {
+	query := `
+		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
+		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS
+		FROM procesos p
+		JOIN EMPLACADO p2 ON p.ID = p2.ID
 		ORDER BY p2.PRIORITY
 	`
 	queryDatabase(c, query)
