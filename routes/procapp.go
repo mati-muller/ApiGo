@@ -1,9 +1,8 @@
 package routes
 
 import (
-
+	"log"
 	"net/http"
-
 
 	_ "github.com/denisenkom/go-mssqldb"
 	"github.com/gin-gonic/gin"
@@ -26,14 +25,17 @@ func SetupProcAppRoutes(r *gin.Engine) {
 }
 
 func queryDatabase(c *gin.Context, query string) {
+	log.Println("[DEBUG] queryDatabase: ejecutando query")
 	rows, err := db.Query(query)
 	if err != nil {
+		log.Printf("[ERROR] queryDatabase: error ejecutando query: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	defer rows.Close()
 
 	columns, _ := rows.Columns()
+	log.Printf("[DEBUG] queryDatabase: columnas: %v", columns)
 	results := []map[string]interface{}{}
 
 	for rows.Next() {
@@ -44,6 +46,7 @@ func queryDatabase(c *gin.Context, query string) {
 		}
 
 		if err := rows.Scan(rowPointers...); err != nil {
+			log.Printf("[ERROR] queryDatabase: error en Scan: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
@@ -53,8 +56,16 @@ func queryDatabase(c *gin.Context, query string) {
 			result[col] = row[i]
 		}
 		results = append(results, result)
+		log.Printf("[DEBUG] queryDatabase: row: %v", result)
 	}
 
+	if err := rows.Err(); err != nil {
+		log.Printf("[ERROR] queryDatabase: rows.Err: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	log.Printf("[DEBUG] queryDatabase: total rows: %d", len(results))
 	c.JSON(http.StatusOK, results)
 }
 

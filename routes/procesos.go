@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -40,6 +41,7 @@ func getData(c *gin.Context) {
 }
 
 func getPendientesEncolado(c *gin.Context) {
+	log.Println("[DEBUG] Entrando a getPendientesEncolado")
 	query := `
 		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, p2.CANT_A_PROD,
 			   JSON_QUERY((
@@ -52,7 +54,9 @@ func getPendientesEncolado(c *gin.Context) {
 		JOIN REPORTES.dbo.procesos2 p2 ON p.ID = p2.ID
 		WHERE p2.ESTADO_PROC = 'PENDIENTE' AND p.PROCESO = 'ENCOLADO'
 	`
+	log.Println("[DEBUG] Ejecutando queryDatabase en getPendientesEncolado")
 	queryDatabase(c, query)
+	log.Println("[DEBUG] Saliendo de getPendientesEncolado")
 }
 
 func getPendientesEmplacado(c *gin.Context) {

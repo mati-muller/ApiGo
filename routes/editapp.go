@@ -58,16 +58,22 @@ func editTroqueladoapp(c *gin.Context) {
 	}
 
 	// Leer el valor actual de CANTIDAD_PLACAS para el ID recibido
-	var cantidadPlacasJSON string
+	var cantidadPlacasJSON sql.NullString
 	err = db.QueryRow("SELECT CANTIDAD_PLACAS FROM TROQUELADO WHERE ID = @id", sql.Named("id", req.ID)).Scan(&cantidadPlacasJSON)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo leer CANTIDAD_PLACAS"})
 		return
 	}
 
+	// Si es NULL, usar array vacío
+	jsonStr := "[]"
+	if cantidadPlacasJSON.Valid {
+		jsonStr = cantidadPlacasJSON.String
+	}
+
 	// Parsear el JSON a un array de ints
 	var cantidadPlacasArr []int
-	err = json.Unmarshal([]byte(cantidadPlacasJSON), &cantidadPlacasArr)
+	err = json.Unmarshal([]byte(jsonStr), &cantidadPlacasArr)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "CANTIDAD_PLACAS no es un array JSON válido"})
 		return
@@ -130,17 +136,22 @@ func editTroquelado2app(c *gin.Context) {
 	}
 
 	// Leer el valor actual de CANTIDAD_PLACAS para el ID recibido
-	var cantidadPlacasJSON string
+	var cantidadPlacasJSON sql.NullString
 	err = db.QueryRow("SELECT CANTIDAD_PLACAS FROM TROQUELADO2 WHERE ID = @id", sql.Named("id", req.ID)).Scan(&cantidadPlacasJSON)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo leer CANTIDAD_PLACAS"})
 		return
 	}
 
+	// Si es NULL, usar array vacío
+	jsonStr := "[]"
+	if cantidadPlacasJSON.Valid {
+		jsonStr = cantidadPlacasJSON.String
+	}
+
 	// Parsear el JSON a un array de ints
-	var
-	cantidadPlacasArr []int
-	err = json.Unmarshal([]byte(cantidadPlacasJSON), &cantidadPlacasArr)
+	var cantidadPlacasArr []int
+	err = json.Unmarshal([]byte(jsonStr), &cantidadPlacasArr)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "CANTIDAD_PLACAS no es un array JSON válido"})
 		return
@@ -157,7 +168,7 @@ func editTroquelado2app(c *gin.Context) {
 	}
 	// Guardar el array actualizado como JSON
 	nuevaCantidadPlacasJSON, err := json.Marshal(cantidadPlacasArr)
-	if err != nil {	
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo serializar el array actualizado"})
 		return
 	}
@@ -166,7 +177,7 @@ func editTroquelado2app(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo actualizar CANTIDAD_PLACAS"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Process updated"})	
+	c.JSON(http.StatusOK, gin.H{"message": "Process updated"})
 }
 func editEmplacadoapp(c *gin.Context) {
 	type request struct {
@@ -199,16 +210,22 @@ func editEmplacadoapp(c *gin.Context) {
 	}
 
 	// Leer el valor actual de CANTIDAD_PLACAS para el ID recibido
-	var cantidadPlacasJSON string
+	var cantidadPlacasJSON sql.NullString
 	err = db.QueryRow("SELECT CANTIDAD_PLACAS FROM EMPLACADO WHERE ID = @id", sql.Named("id", req.ID)).Scan(&cantidadPlacasJSON)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo leer CANTIDAD_PLACAS"})
 		return
 	}
 
+	// Si es NULL, usar array vacío
+	jsonStr := "[]"
+	if cantidadPlacasJSON.Valid {
+		jsonStr = cantidadPlacasJSON.String
+	}
+
 	// Parsear el JSON a un array de ints
 	var cantidadPlacasArr []int
-	err = json.Unmarshal([]byte(cantidadPlacasJSON), &cantidadPlacasArr)
+	err = json.Unmarshal([]byte(jsonStr), &cantidadPlacasArr)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "CANTIDAD_PLACAS no es un array JSON válido"})
 		return
@@ -272,16 +289,22 @@ func editTrozadoapp(c *gin.Context) {
 	}
 
 	// Leer el valor actual de CANTIDAD_PLACAS para el ID recibido
-	var cantidadPlacasJSON string
+	var cantidadPlacasJSON sql.NullString
 	err = db.QueryRow("SELECT CANTIDAD_PLACAS FROM TROZADO WHERE ID = @id", sql.Named("id", req.ID)).Scan(&cantidadPlacasJSON)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo leer CANTIDAD_PLACAS"})
 		return
 	}
 
+	// Si es NULL, usar array vacío
+	jsonStr := "[]"
+	if cantidadPlacasJSON.Valid {
+		jsonStr = cantidadPlacasJSON.String
+	}
+
 	// Parsear el JSON a un array de ints
 	var cantidadPlacasArr []int
-	err = json.Unmarshal([]byte(cantidadPlacasJSON), &cantidadPlacasArr)
+	err = json.Unmarshal([]byte(jsonStr), &cantidadPlacasArr)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "CANTIDAD_PLACAS no es un array JSON válido"})
 		return
@@ -345,16 +368,22 @@ func editEncoladoapp(c *gin.Context) {
 	}
 
 	// Leer el valor actual de CANTIDAD_PLACAS para el ID recibido
-	var cantidadPlacasJSON string
+	var cantidadPlacasJSON sql.NullString
 	err = db.QueryRow("SELECT CANTIDAD_PLACAS FROM ENCOLADO WHERE ID = @id", sql.Named("id", req.ID)).Scan(&cantidadPlacasJSON)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo leer CANTIDAD_PLACAS"})
 		return
 	}
 
+	// Si es NULL, usar array vacío
+	jsonStr := "[]"
+	if cantidadPlacasJSON.Valid {
+		jsonStr = cantidadPlacasJSON.String
+	}
+
 	// Parsear el JSON a un array de ints
 	var cantidadPlacasArr []int
-	err = json.Unmarshal([]byte(cantidadPlacasJSON), &cantidadPlacasArr)
+	err = json.Unmarshal([]byte(jsonStr), &cantidadPlacasArr)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "CANTIDAD_PLACAS no es un array JSON válido"})
 		return
@@ -418,16 +447,22 @@ func editEncoladoapp2(c *gin.Context) {
 	}
 
 	// Leer el valor actual de CANTIDAD_PLACAS para el ID recibido
-	var cantidadPlacasJSON string
+	var cantidadPlacasJSON sql.NullString
 	err = db.QueryRow("SELECT CANTIDAD_PLACAS FROM ENCOLADO2 WHERE ID = @id", sql.Named("id", req.ID)).Scan(&cantidadPlacasJSON)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo leer CANTIDAD_PLACAS"})
 		return
 	}
 
+	// Si es NULL, usar array vacío
+	jsonStr := "[]"
+	if cantidadPlacasJSON.Valid {
+		jsonStr = cantidadPlacasJSON.String
+	}
+
 	// Parsear el JSON a un array de ints
 	var cantidadPlacasArr []int
-	err = json.Unmarshal([]byte(cantidadPlacasJSON), &cantidadPlacasArr)
+	err = json.Unmarshal([]byte(jsonStr), &cantidadPlacasArr)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "CANTIDAD_PLACAS no es un array JSON válido"})
 		return
@@ -491,16 +526,22 @@ func editPegadoapp(c *gin.Context) {
 	}
 
 	// Leer el valor actual de CANTIDAD_PLACAS para el ID recibido
-	var cantidadPlacasJSON string
+	var cantidadPlacasJSON sql.NullString
 	err = db.QueryRow("SELECT CANTIDAD_PLACAS FROM PEGADO WHERE ID = @id", sql.Named("id", req.ID)).Scan(&cantidadPlacasJSON)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo leer CANTIDAD_PLACAS"})
 		return
 	}
 
+	// Si es NULL, usar array vacío
+	jsonStr := "[]"
+	if cantidadPlacasJSON.Valid {
+		jsonStr = cantidadPlacasJSON.String
+	}
+
 	// Parsear el JSON a un array de ints
 	var cantidadPlacasArr []int
-	err = json.Unmarshal([]byte(cantidadPlacasJSON), &cantidadPlacasArr)
+	err = json.Unmarshal([]byte(jsonStr), &cantidadPlacasArr)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "CANTIDAD_PLACAS no es un array JSON válido"})
 		return
@@ -564,16 +605,22 @@ func editMultipleapp(c *gin.Context) {
 	}
 
 	// Leer el valor actual de CANTIDAD_PLACAS para el ID recibido
-	var cantidadPlacasJSON string
+	var cantidadPlacasJSON sql.NullString
 	err = db.QueryRow("SELECT CANTIDAD_PLACAS FROM MULTIPLE WHERE ID = @id", sql.Named("id", req.ID)).Scan(&cantidadPlacasJSON)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo leer CANTIDAD_PLACAS"})
 		return
 	}
 
+	// Si es NULL, usar array vacío
+	jsonStr := "[]"
+	if cantidadPlacasJSON.Valid {
+		jsonStr = cantidadPlacasJSON.String
+	}
+
 	// Parsear el JSON a un array de ints
 	var cantidadPlacasArr []int
-	err = json.Unmarshal([]byte(cantidadPlacasJSON), &cantidadPlacasArr)
+	err = json.Unmarshal([]byte(jsonStr), &cantidadPlacasArr)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "CANTIDAD_PLACAS no es un array JSON válido"})
 		return
@@ -637,16 +684,22 @@ func editMultipleapp2(c *gin.Context) {
 	}
 
 	// Leer el valor actual de CANTIDAD_PLACAS para el ID recibido
-	var cantidadPlacasJSON string
+	var cantidadPlacasJSON sql.NullString
 	err = db.QueryRow("SELECT CANTIDAD_PLACAS FROM MULTIPLE2 WHERE ID = @id", sql.Named("id", req.ID)).Scan(&cantidadPlacasJSON)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo leer CANTIDAD_PLACAS"})
 		return
 	}
 
+	// Si es NULL, usar array vacío
+	jsonStr := "[]"
+	if cantidadPlacasJSON.Valid {
+		jsonStr = cantidadPlacasJSON.String
+	}
+
 	// Parsear el JSON a un array de ints
 	var cantidadPlacasArr []int
-	err = json.Unmarshal([]byte(cantidadPlacasJSON), &cantidadPlacasArr)
+	err = json.Unmarshal([]byte(jsonStr), &cantidadPlacasArr)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "CANTIDAD_PLACAS no es un array JSON válido"})
 		return
@@ -710,16 +763,22 @@ func editPlizadoapp(c *gin.Context) {
 	}
 
 	// Leer el valor actual de CANTIDAD_PLACAS para el ID recibido
-	var cantidadPlacasJSON string
+	var cantidadPlacasJSON sql.NullString
 	err = db.QueryRow("SELECT CANTIDAD_PLACAS FROM PLIZADO WHERE ID = @id", sql.Named("id", req.ID)).Scan(&cantidadPlacasJSON)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo leer CANTIDAD_PLACAS"})
 		return
 	}
 
+	// Si es NULL, usar array vacío
+	jsonStr := "[]"
+	if cantidadPlacasJSON.Valid {
+		jsonStr = cantidadPlacasJSON.String
+	}
+
 	// Parsear el JSON a un array de ints
 	var cantidadPlacasArr []int
-	err = json.Unmarshal([]byte(cantidadPlacasJSON), &cantidadPlacasArr)
+	err = json.Unmarshal([]byte(jsonStr), &cantidadPlacasArr)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "CANTIDAD_PLACAS no es un array JSON válido"})
 		return
@@ -783,16 +842,22 @@ func editImpresionapp(c *gin.Context) {
 	}
 
 	// Leer el valor actual de CANTIDAD_PLACAS para el ID recibido
-	var cantidadPlacasJSON string
+	var cantidadPlacasJSON sql.NullString
 	err = db.QueryRow("SELECT CANTIDAD_PLACAS FROM PLIZADO WHERE ID = @id", sql.Named("id", req.ID)).Scan(&cantidadPlacasJSON)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo leer CANTIDAD_PLACAS"})
 		return
 	}
 
+	// Si es NULL, usar array vacío
+	jsonStr := "[]"
+	if cantidadPlacasJSON.Valid {
+		jsonStr = cantidadPlacasJSON.String
+	}
+
 	// Parsear el JSON a un array de ints
 	var cantidadPlacasArr []int
-	err = json.Unmarshal([]byte(cantidadPlacasJSON), &cantidadPlacasArr)
+	err = json.Unmarshal([]byte(jsonStr), &cantidadPlacasArr)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "CANTIDAD_PLACAS no es un array JSON válido"})
 		return
@@ -856,16 +921,22 @@ func editCaladoapp(c *gin.Context) {
 	}
 
 	// Leer el valor actual de CANTIDAD_PLACAS para el ID recibido
-	var cantidadPlacasJSON string
+	var cantidadPlacasJSON sql.NullString
 	err = db.QueryRow("SELECT CANTIDAD_PLACAS FROM CALADO WHERE ID = @id", sql.Named("id", req.ID)).Scan(&cantidadPlacasJSON)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo leer CANTIDAD_PLACAS"})
 		return
 	}
 
+	// Si es NULL, usar array vacío
+	jsonStr := "[]"
+	if cantidadPlacasJSON.Valid {
+		jsonStr = cantidadPlacasJSON.String
+	}
+
 	// Parsear el JSON a un array de ints
 	var cantidadPlacasArr []int
-	err = json.Unmarshal([]byte(cantidadPlacasJSON), &cantidadPlacasArr)
+	err = json.Unmarshal([]byte(jsonStr), &cantidadPlacasArr)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "CANTIDAD_PLACAS no es un array JSON válido"})
 		return

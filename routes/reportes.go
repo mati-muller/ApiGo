@@ -82,7 +82,7 @@ func updateHandler(c *gin.Context) {
 	}()
 
 	// Fetch current data
-	var currentPlacas, currentPlacasUsadas, currentPlacasBuenas, currentPlacasMalas, currentUser string
+	var currentPlacas, currentPlacasUsadas, currentPlacasBuenas, currentPlacasMalas, currentUser sql.NullString
 	err = tx.QueryRow(`
 		SELECT PLACA, PLACAS_USADAS, PLACAS_BUENAS, PLACAS_MALAS, [USER]
 		FROM procesos2
@@ -99,27 +99,51 @@ func updateHandler(c *gin.Context) {
 		return
 	}
 
+	// Use empty array if NULL
+	placasStr := "[]"
+	if currentPlacas.Valid {
+		placasStr = currentPlacas.String
+	}
+	placasUsadasStr := "[]"
+	if currentPlacasUsadas.Valid {
+		placasUsadasStr = currentPlacasUsadas.String
+	}
+	placasBuenasStr := "[]"
+	if currentPlacasBuenas.Valid {
+		placasBuenasStr = currentPlacasBuenas.String
+	}
+	placasMalasStr := "[]"
+	if currentPlacasMalas.Valid {
+		placasMalasStr = currentPlacasMalas.String
+	}
+	userStr := ""
+	if currentUser.Valid {
+		userStr = currentUser.String
+	}
+
 	// Merge user if different
-	if currentUser != reqBody.User {
-		currentUser = currentUser + ", " + reqBody.User
+	if userStr != reqBody.User && userStr != "" {
+		userStr = userStr + ", " + reqBody.User
+	} else if userStr == "" {
+		userStr = reqBody.User
 	}
 
 	// Parse JSON fields
 	var placas []string
-	if err := json.Unmarshal([]byte(currentPlacas), &placas); err != nil {
+	if err := json.Unmarshal([]byte(placasStr), &placas); err != nil {
 		log.Println("Error parsing PLACA JSON:", err)
 	}
 	// Use integer slices for counts
 	var placasUsadasArr, placasBuenasArr, placasMalasArr []int
-	if err := json.Unmarshal([]byte(currentPlacasUsadas), &placasUsadasArr); err != nil {
+	if err := json.Unmarshal([]byte(placasUsadasStr), &placasUsadasArr); err != nil {
 		log.Println("Error parsing PLACAS_USADAS JSON:", err)
 		placasUsadasArr = make([]int, len(placas))
 	}
-	if err := json.Unmarshal([]byte(currentPlacasBuenas), &placasBuenasArr); err != nil {
+	if err := json.Unmarshal([]byte(placasBuenasStr), &placasBuenasArr); err != nil {
 		log.Println("Error parsing PLACAS_BUENAS JSON:", err)
 		placasBuenasArr = make([]int, len(placas))
 	}
-	if err := json.Unmarshal([]byte(currentPlacasMalas), &placasMalasArr); err != nil {
+	if err := json.Unmarshal([]byte(placasMalasStr), &placasMalasArr); err != nil {
 		log.Println("Error parsing PLACAS_MALAS JSON:", err)
 		placasMalasArr = make([]int, len(placas))
 	}
@@ -148,10 +172,14 @@ func updateHandler(c *gin.Context) {
 	}
 
 	// Update database with JSON arrays of strings and ints
-	placasStr, _ := json.Marshal(placas)
-	placasUsadasStr, _ := json.Marshal(placasUsadasArr)
-	placasBuenasStr, _ := json.Marshal(placasBuenasArr)
-	placasMalasStr, _ := json.Marshal(placasMalasArr)
+	placasBytes, _ := json.Marshal(placas)
+	placasStr = string(placasBytes)
+	placasUsadasBytes, _ := json.Marshal(placasUsadasArr)
+	placasUsadasStr = string(placasUsadasBytes)
+	placasBuenasBytes, _ := json.Marshal(placasBuenasArr)
+	placasBuenasStr = string(placasBuenasBytes)
+	placasMalasBytes, _ := json.Marshal(placasMalasArr)
+	placasMalasStr = string(placasMalasBytes)
 
 	_, err = tx.Exec(`
 		UPDATE procesos2
@@ -167,8 +195,8 @@ func updateHandler(c *gin.Context) {
 			STOCK_CANT = STOCK_CANT + @p8,
 			NUMERO_PERSONAS = @p9
 		WHERE ID = @p10
-	`, reqBody.SubtractValue, string(placasStr), string(placasUsadasStr), string(placasBuenasStr), string(placasMalasStr),
-		reqBody.TiempoTotal, currentUser, reqBody.StockCant, reqBody.NumeroPersonas, reqBody.ID)
+	`, reqBody.SubtractValue, placasStr, placasUsadasStr, placasBuenasStr, placasMalasStr,
+		reqBody.TiempoTotal, userStr, reqBody.StockCant, reqBody.NumeroPersonas, reqBody.ID)
 	if err != nil {
 		tx.Rollback()
 		log.Println("Update error:", err)
@@ -177,10 +205,14 @@ func updateHandler(c *gin.Context) {
 	}
 
 	// Insert data into HISTORIAL table
-	placasStr, _ = json.Marshal(reqBody.Placas)
-	placasUsadasStr, _ = json.Marshal(reqBody.PlacasUsadas)
-	placasBuenasStr, _ = json.Marshal(reqBody.PlacasBuenas)
-	placasMalasStr, _ = json.Marshal(reqBody.PlacasMalas)
+	placasBytes, _ = json.Marshal(reqBody.Placas)
+	placasStr = string(placasBytes)
+	placasUsadasBytes, _ = json.Marshal(reqBody.PlacasUsadas)
+	placasUsadasStr = string(placasUsadasBytes)
+	placasBuenasBytes, _ = json.Marshal(reqBody.PlacasBuenas)
+	placasBuenasStr = string(placasBuenasBytes)
+	placasMalasBytes, _ = json.Marshal(reqBody.PlacasMalas)
+	placasMalasStr = string(placasMalasBytes)
 
 	_, err = tx.Exec(`
 		INSERT INTO HISTORIAL (
@@ -189,8 +221,8 @@ func updateHandler(c *gin.Context) {
 		) VALUES (
 			@p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11
 		)
-	`, reqBody.ID, reqBody.SubtractValue, string(placasStr), string(placasUsadasStr),
-		string(placasBuenasStr), string(placasMalasStr), reqBody.TiempoTotal,
+	`, reqBody.ID, reqBody.SubtractValue, placasStr, placasUsadasStr,
+		placasBuenasStr, placasMalasStr, reqBody.TiempoTotal,
 		reqBody.NumeroPersonas, "", reqBody.User, reqBody.StockCant)
 	if err != nil {
 		tx.Rollback()
