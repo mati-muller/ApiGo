@@ -51,10 +51,17 @@ func registerUser(c *gin.Context) {
 		Password string `json:"password"`
 		Nombre   string `json:"nombre"`
 		Apellido string `json:"apellido"`
-		Rol      string `json:"rol"`
+		Rol      string `json:"rol"` // <-- Asegurarse de recibir el rol
 	}
 	if err := c.ShouldBindJSON(&user); err != nil {
 		handleError(c, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	// Validar rol permitido
+	validRoles := map[string]bool{"Superadmin": true, "Admin": true, "Operador": true}
+	if !validRoles[user.Rol] {
+		handleError(c, http.StatusBadRequest, "Rol inválido")
 		return
 	}
 
@@ -66,7 +73,7 @@ func registerUser(c *gin.Context) {
 
 	// El ID será autoincremental, no se pasa en el INSERT
 	query := `INSERT INTO REPORTES.dbo.users (USERNAME, PASSWORD, NOMBRE, APELLIDO, ROL, procesos) 
-			OUTPUT INSERTED.ID VALUES (@Username, @Password, @Nombre, @Apellido, @Rol, NULL)`
+	OUTPUT INSERTED.ID VALUES (@Username, @Password, @Nombre, @Apellido, @Rol, NULL)`
 	var userID int
 	err = db.QueryRow(query,
 		sql.Named("Username", user.Username),
@@ -106,11 +113,12 @@ func loginUser(c *gin.Context) {
 		Nombre   string
 		Apellido string
 		Procesos string
+		Rol      string
 	}
 	err := db.QueryRow(
-		"SELECT ID, USERNAME, PASSWORD, NOMBRE, APELLIDO, ISNULL(procesos, '') FROM REPORTES.dbo.users WHERE USERNAME = @Username",
+		"SELECT ID, USERNAME, PASSWORD, NOMBRE, APELLIDO, ISNULL(procesos, ''), ROL FROM REPORTES.dbo.users WHERE USERNAME = @Username",
 		sql.Named("Username", credentials.Username),
-	).Scan(&user.ID, &user.Username, &user.Password, &user.Nombre, &user.Apellido, &user.Procesos)
+	).Scan(&user.ID, &user.Username, &user.Password, &user.Nombre, &user.Apellido, &user.Procesos, &user.Rol)
 	if err == sql.ErrNoRows {
 		handleError(c, http.StatusBadRequest, "Invalid username or password")
 		return
@@ -129,6 +137,7 @@ func loginUser(c *gin.Context) {
 		"username":       user.Username,
 		"nombreCompleto": user.Nombre + " " + user.Apellido,
 		"procesos":       user.Procesos,
+		"rol":            user.Rol,
 	})
 }
 
@@ -181,12 +190,13 @@ func getUserByID(c *gin.Context) {
 		Nombre   string
 		Apellido string
 		Procesos string
+		Rol      string
 	}
 
 	err := db.QueryRow(
-		"SELECT ID, USERNAME, NOMBRE, APELLIDO, ISNULL(procesos, '') FROM REPORTES.dbo.users WHERE ID = @ID",
+		"SELECT ID, USERNAME, NOMBRE, APELLIDO, ISNULL(procesos, ''), ROL FROM REPORTES.dbo.users WHERE ID = @ID",
 		sql.Named("ID", id),
-	).Scan(&user.ID, &user.Username, &user.Nombre, &user.Apellido, &user.Procesos)
+	).Scan(&user.ID, &user.Username, &user.Nombre, &user.Apellido, &user.Procesos, &user.Rol)
 	if err == sql.ErrNoRows {
 		handleError(c, http.StatusNotFound, "User not found")
 		return
@@ -200,5 +210,8 @@ func getUserByID(c *gin.Context) {
 		"username":       user.Username,
 		"nombreCompleto": user.Nombre + " " + user.Apellido,
 		"procesos":       user.Procesos,
+		"rol":            user.Rol,
 	})
 }
+
+

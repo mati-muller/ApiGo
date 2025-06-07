@@ -25,7 +25,7 @@ func getUsers(c *gin.Context) {
 	}
 	defer db.Close()
 
-	rows, err := db.Query("SELECT ID, NOMBRE, APELLIDO, USERNAME, ISNULL(procesos, '[]') as procesos FROM REPORTES.dbo.users")
+	rows, err := db.Query("SELECT ID, NOMBRE, APELLIDO, USERNAME, ISNULL(procesos, '[]') as procesos, ROL FROM REPORTES.dbo.users")
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, "Failed to fetch users: "+err.Error())
 		return
@@ -37,7 +37,8 @@ func getUsers(c *gin.Context) {
 		Nombre   string `json:"nombre"`
 		Apellido string `json:"apellido"`
 		Username string `json:"username"`
-		Procesos string `json:"procesos"` // Added field for processes
+		Procesos string `json:"procesos"`
+		Rol      string `json:"rol"`
 	}
 
 	for rows.Next() {
@@ -46,9 +47,10 @@ func getUsers(c *gin.Context) {
 			Nombre   string `json:"nombre"`
 			Apellido string `json:"apellido"`
 			Username string `json:"username"`
-			Procesos string `json:"procesos"` // Added field for processes
+			Procesos string `json:"procesos"`
+			Rol      string `json:"rol"`
 		}
-		if err := rows.Scan(&user.ID, &user.Nombre, &user.Apellido, &user.Username, &user.Procesos); err != nil {
+		if err := rows.Scan(&user.ID, &user.Nombre, &user.Apellido, &user.Username, &user.Procesos, &user.Rol); err != nil {
 			handleError(c, http.StatusInternalServerError, "Failed to scan user: "+err.Error())
 			return
 		}
