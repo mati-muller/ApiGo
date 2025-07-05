@@ -321,3 +321,14 @@ WHERE ISJSON(PLACAS_USADAS) = 0 OR ISJSON(PLACAS_BUENAS) = 0 OR ISJSON(PLACAS_MA
 SELECT ID, PLACAS_USADAS, PLACAS_BUENAS, PLACAS_MALAS
 FROM procesos2
 WHERE ISJSON(PLACAS_USADAS) = 0 OR ISJSON(PLACAS_BUENAS) = 0 OR ISJSON(PLACAS_MALAS) = 0;
+
+-- Agregar columna despunte a procesos2 si no existe
+IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'procesos2' AND COLUMN_NAME = 'despunte')
+BEGIN
+    ALTER TABLE procesos2 ADD despunte BIT DEFAULT 0;
+END
+
+-- Script para actualizar la definición de procesos2 con la nueva columna despunte
+/*
+ALTER TABLE procesos2 ADD despunte BIT DEFAULT 0;
+*/

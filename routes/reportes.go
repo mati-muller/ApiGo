@@ -33,6 +33,7 @@ func updateHandler(c *gin.Context) {
 		AddToStock      bool     `json:"addToStock"`
 		RemoveFromStock bool     `json:"removeFromStock"`
 		RemoveStockCant int      `json:"removeStockCant"`
+		Despunte        bool     `json:"despunte"`
 	}
 
 	// Parse and validate request body
@@ -193,10 +194,11 @@ func updateHandler(c *gin.Context) {
 			TIEMPO_TOTAL = TIEMPO_TOTAL + @p6,
 			[USER] = @p7,
 			STOCK_CANT = STOCK_CANT + @p8,
-			NUMERO_PERSONAS = @p9
+			NUMERO_PERSONAS = @p9,
+			despunte = @p11
 		WHERE ID = @p10
 	`, reqBody.SubtractValue, placasStr, placasUsadasStr, placasBuenasStr, placasMalasStr,
-		reqBody.TiempoTotal, userStr, reqBody.StockCant, reqBody.NumeroPersonas, reqBody.ID)
+		reqBody.TiempoTotal, userStr, reqBody.StockCant, reqBody.NumeroPersonas, reqBody.ID, reqBody.Despunte)
 	if err != nil {
 		tx.Rollback()
 		log.Println("Update error:", err)
@@ -423,6 +425,15 @@ func deductInventory(tx *sql.Tx, placa string, quantityToDeduct int) error {
 }
 
 func getHistorialHandler(c *gin.Context) {
+	// Use environment variables for database connection
+	db, err := sql.Open("sqlserver", "Server="+os.Getenv("SQL_SERVER")+"\\"+os.Getenv("SQL_INSTANCE")+";Database="+os.Getenv("SQL_DATABASE2")+";User Id="+os.Getenv("SQL_USER")+";Password="+os.Getenv("SQL_PASSWORD")+";Encrypt=disable")
+	if err != nil {
+		log.Println("Database connection error:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database connection error"})
+		return
+	}
+	defer db.Close()
+
 	// Query the HISTORIAL table with a JOIN on procesos
 	rows, err := db.Query(`
         SELECT h.ID, h.ID_PROCESO, h.CANTIDAD, h.PLACA, h.PLACAS_USADAS, h.PLACAS_BUENAS, h.PLACAS_MALAS, 
@@ -442,25 +453,34 @@ func getHistorialHandler(c *gin.Context) {
 	var historial []map[string]interface{}
 	for rows.Next() {
 		var (
-			id, idProceso, cantidad, numeroPersonas, stockCant, nvnumero, nvcant                                 int
-			placa, placasUsadas, placasBuenas, placasMalas, stock, user, fechaEntrega, codprod, detprod, proceso string
-			tiempoTotal                                                                                          float64
-			fecha                                                                                                sql.NullString
+			id, idProceso, cantidad, numeroPersonas, stockCant, nvnumero, nvcant                                int
+			placa, placasUsadas, placasBuenas, placasMalas, stock, user, fechaEntrega, nomaux, detprod, proceso string
+			tiempoTotal                                                                                         float64
+			fecha                                                                                               sql.NullString
 		)
-		if err := rows.Scan(&id, &idProceso, &cantidad, &placa, &placasUsadas, &placasBuenas, &placasMalas, &tiempoTotal, &numeroPersonas, &stock, &user, &stockCant, &nvnumero, &fechaEntrega, &codprod, &nvcant, &detprod, &proceso, &fecha); err != nil {
+		if err := rows.Scan(&id, &idProceso, &cantidad, &placa, &placasUsadas, &placasBuenas, &placasMalas, &tiempoTotal, &numeroPersonas, &stock, &user, &stockCant, &nvnumero, &fechaEntrega, &nomaux, &nvcant, &detprod, &proceso, &fecha); err != nil {
 			log.Println("Error scanning row:", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error scanning row"})
 			return
 		}
 
+		// Parse JSON arrays for proper display
+		var placasArray []string
+		var placasUsadasArray, placasBuenasArray, placasMalasArray []int
+
+		json.Unmarshal([]byte(placa), &placasArray)
+		json.Unmarshal([]byte(placasUsadas), &placasUsadasArray)
+		json.Unmarshal([]byte(placasBuenas), &placasBuenasArray)
+		json.Unmarshal([]byte(placasMalas), &placasMalasArray)
+
 		historial = append(historial, map[string]interface{}{
 			"ID":              id,
 			"ID_PROCESO":      idProceso,
 			"CANTIDAD":        cantidad,
-			"PLACA":           placa,
-			"PLACAS_USADAS":   placasUsadas,
-			"PLACAS_BUENAS":   placasBuenas,
-			"PLACAS_MALAS":    placasMalas,
+			"PLACA":           placasArray,
+			"PLACAS_USADAS":   placasUsadasArray,
+			"PLACAS_BUENAS":   placasBuenasArray,
+			"PLACAS_MALAS":    placasMalasArray,
 			"TIEMPO_TOTAL":    tiempoTotal,
 			"NUMERO_PERSONAS": numeroPersonas,
 			"STOCK":           stock,
@@ -468,7 +488,7 @@ func getHistorialHandler(c *gin.Context) {
 			"STOCK_CANT":      stockCant,
 			"NVNUMERO":        nvnumero,
 			"FECHA_ENTREGA":   fechaEntrega,
-			"CODPROD":         codprod,
+			"NOMAUX":          nomaux,
 			"NVCANT":          nvcant,
 			"DETPROD":         detprod,
 			"PROCESO":         proceso,
