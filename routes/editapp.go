@@ -50,7 +50,7 @@ func editTroqueladoapp(c *gin.Context) {
 	}
 	defer db.Close()
 
-	query := `UPDATE TROQUELADO SET CANT_A_FABRICAR = CASE WHEN CANT_A_FABRICAR - @cantidad < 0 THEN 0 ELSE CANT_A_FABRICAR - @cantidad END, CANTIDAD_PRODUCIDA = ISNULL(CANTIDAD_PRODUCIDA,0) + @cantidad WHERE ID = @id`
+	query := `UPDATE TROQUELADO SET CANT_A_FABRICAR = CASE WHEN CANT_A_FABRICAR - @cantidad < 0 THEN 0 ELSE CANT_A_FABRICAR - @cantidad END WHERE ID = @id`
 	_, err = db.Exec(query, sql.Named("cantidad", req.Cantidad), sql.Named("id", req.ID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update process"})
@@ -128,7 +128,7 @@ func editTroquelado2app(c *gin.Context) {
 	}
 	defer db.Close()
 
-	query := `UPDATE TROQUELADO2 SET CANT_A_FABRICAR = CASE WHEN CANT_A_FABRICAR - @cantidad < 0 THEN 0 ELSE CANT_A_FABRICAR - @cantidad END, CANTIDAD_PRODUCIDA = ISNULL(CANTIDAD_PRODUCIDA,0) + @cantidad WHERE ID = @id`
+	query := `UPDATE TROQUELADO2 SET CANT_A_FABRICAR = CASE WHEN CANT_A_FABRICAR - @cantidad < 0 THEN 0 ELSE CANT_A_FABRICAR - @cantidad END WHERE ID = @id`
 	_, err = db.Exec(query, sql.Named("cantidad", req.Cantidad), sql.Named("id", req.ID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update process"})
@@ -202,7 +202,7 @@ func editEmplacadoapp(c *gin.Context) {
 	}
 	defer db.Close()
 
-	query := `UPDATE EMPLACADO SET CANT_A_FABRICAR = CASE WHEN CANT_A_FABRICAR - @cantidad < 0 THEN 0 ELSE CANT_A_FABRICAR - @cantidad END, CANTIDAD_PRODUCIDA = ISNULL(CANTIDAD_PRODUCIDA,0) + @cantidad WHERE ID = @id`
+	query := `UPDATE EMPLACADO SET CANT_A_FABRICAR = CASE WHEN CANT_A_FABRICAR - @cantidad < 0 THEN 0 ELSE CANT_A_FABRICAR - @cantidad END WHERE ID = @id`
 	_, err = db.Exec(query, sql.Named("cantidad", req.Cantidad), sql.Named("id", req.ID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update process"})
@@ -281,7 +281,7 @@ func editTrozadoapp(c *gin.Context) {
 	}
 	defer db.Close()
 
-	query := `UPDATE TROZADO SET CANT_A_FABRICAR = CASE WHEN CANT_A_FABRICAR - @cantidad < 0 THEN 0 ELSE CANT_A_FABRICAR - @cantidad END, CANTIDAD_PRODUCIDA = ISNULL(CANTIDAD_PRODUCIDA,0) + @cantidad WHERE ID = @id`
+	query := `UPDATE TROZADO SET CANT_A_FABRICAR = CASE WHEN CANT_A_FABRICAR - @cantidad < 0 THEN 0 ELSE CANT_A_FABRICAR - @cantidad END WHERE ID = @id`
 	_, err = db.Exec(query, sql.Named("cantidad", req.Cantidad), sql.Named("id", req.ID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update process"})
@@ -360,7 +360,7 @@ func editEncoladoapp(c *gin.Context) {
 	}
 	defer db.Close()
 
-	query := `UPDATE ENCOLADO SET CANT_A_FABRICAR = CASE WHEN CANT_A_FABRICAR - @cantidad < 0 THEN 0 ELSE CANT_A_FABRICAR - @cantidad END, CANTIDAD_PRODUCIDA = ISNULL(CANTIDAD_PRODUCIDA,0) + @cantidad WHERE ID = @id`
+	query := `UPDATE ENCOLADO SET CANT_A_FABRICAR = CASE WHEN CANT_A_FABRICAR - @cantidad < 0 THEN 0 ELSE CANT_A_FABRICAR - @cantidad END WHERE ID = @id`
 	_, err = db.Exec(query, sql.Named("cantidad", req.Cantidad), sql.Named("id", req.ID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update process"})
@@ -425,6 +425,7 @@ func editEncoladoapp2(c *gin.Context) {
 	}
 	var req request
 	if err := c.ShouldBindJSON(&req); err != nil {
+		fmt.Println("error:", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
@@ -434,14 +435,17 @@ func editEncoladoapp2(c *gin.Context) {
 
 	db, err := sql.Open("sqlserver", "Server="+os.Getenv("SQL_SERVER")+"\\"+os.Getenv("SQL_INSTANCE")+";Database="+os.Getenv("SQL_DATABASE2")+";User Id="+os.Getenv("SQL_USER")+";Password="+os.Getenv("SQL_PASSWORD")+";Encrypt=disable")
 	if err != nil {
+		fmt.Println("error:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to connect to database"})
 		return
 	}
 	defer db.Close()
 
-	query := `UPDATE ENCOLADO2 SET CANT_A_FABRICAR = CASE WHEN CANT_A_FABRICAR - @cantidad < 0 THEN 0 ELSE CANT_A_FABRICAR - @cantidad END, CANTIDAD_PRODUCIDA = ISNULL(CANTIDAD_PRODUCIDA,0) + @cantidad WHERE ID = @id`
+	// Update only CANT_A_FABRICAR, remove CANTIDAD_PRODUCIDA from the query
+	query := `UPDATE ENCOLADO2 SET CANT_A_FABRICAR = CASE WHEN CANT_A_FABRICAR - @cantidad < 0 THEN 0 ELSE CANT_A_FABRICAR - @cantidad END WHERE ID = @id`
 	_, err = db.Exec(query, sql.Named("cantidad", req.Cantidad), sql.Named("id", req.ID))
 	if err != nil {
+		fmt.Println("error:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update process"})
 		return
 	}
@@ -450,6 +454,7 @@ func editEncoladoapp2(c *gin.Context) {
 	var cantidadPlacasJSON sql.NullString
 	err = db.QueryRow("SELECT CANTIDAD_PLACAS FROM ENCOLADO2 WHERE ID = @id", sql.Named("id", req.ID)).Scan(&cantidadPlacasJSON)
 	if err != nil {
+		fmt.Println("error:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo leer CANTIDAD_PLACAS"})
 		return
 	}
@@ -464,6 +469,7 @@ func editEncoladoapp2(c *gin.Context) {
 	var cantidadPlacasArr []int
 	err = json.Unmarshal([]byte(jsonStr), &cantidadPlacasArr)
 	if err != nil {
+		fmt.Println("error:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "CANTIDAD_PLACAS no es un array JSON válido"})
 		return
 	}
@@ -482,12 +488,14 @@ func editEncoladoapp2(c *gin.Context) {
 	// Guardar el array actualizado como JSON
 	nuevaCantidadPlacasJSON, err := json.Marshal(cantidadPlacasArr)
 	if err != nil {
+		fmt.Println("error:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo serializar el array actualizado"})
 		return
 	}
 
 	_, err = db.Exec("UPDATE ENCOLADO2 SET CANTIDAD_PLACAS = @nuevo WHERE ID = @id", sql.Named("nuevo", string(nuevaCantidadPlacasJSON)), sql.Named("id", req.ID))
 	if err != nil {
+		fmt.Println("error:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo actualizar CANTIDAD_PLACAS"})
 		return
 	}
@@ -518,7 +526,7 @@ func editPegadoapp(c *gin.Context) {
 	}
 	defer db.Close()
 
-	query := `UPDATE PEGADO SET CANT_A_FABRICAR = CASE WHEN CANT_A_FABRICAR - @cantidad < 0 THEN 0 ELSE CANT_A_FABRICAR - @cantidad END, CANTIDAD_PRODUCIDA = ISNULL(CANTIDAD_PRODUCIDA,0) + @cantidad WHERE ID = @id`
+	query := `UPDATE PEGADO SET CANT_A_FABRICAR = CASE WHEN CANT_A_FABRICAR - @cantidad < 0 THEN 0 ELSE CANT_A_FABRICAR - @cantidad END WHERE ID = @id`
 	_, err = db.Exec(query, sql.Named("cantidad", req.Cantidad), sql.Named("id", req.ID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update process"})
@@ -597,7 +605,7 @@ func editMultipleapp(c *gin.Context) {
 	}
 	defer db.Close()
 
-	query := `UPDATE MULTIPLE SET CANT_A_FABRICAR = CASE WHEN CANT_A_FABRICAR - @cantidad < 0 THEN 0 ELSE CANT_A_FABRICAR - @cantidad END, CANTIDAD_PRODUCIDA = ISNULL(CANTIDAD_PRODUCIDA,0) + @cantidad WHERE ID = @id`
+	query := `UPDATE MULTIPLE SET CANT_A_FABRICAR = CASE WHEN CANT_A_FABRICAR - @cantidad < 0 THEN 0 ELSE CANT_A_FABRICAR - @cantidad END WHERE ID = @id`
 	_, err = db.Exec(query, sql.Named("cantidad", req.Cantidad), sql.Named("id", req.ID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update process"})
@@ -676,7 +684,7 @@ func editMultipleapp2(c *gin.Context) {
 	}
 	defer db.Close()
 
-	query := `UPDATE MULTIPLE2 SET CANT_A_FABRICAR = CASE WHEN CANT_A_FABRICAR - @cantidad < 0 THEN 0 ELSE CANT_A_FABRICAR - @cantidad END, CANTIDAD_PRODUCIDA = ISNULL(CANTIDAD_PRODUCIDA,0) + @cantidad WHERE ID = @id`
+	query := `UPDATE MULTIPLE2 SET CANT_A_FABRICAR = CASE WHEN CANT_A_FABRICAR - @cantidad < 0 THEN 0 ELSE CANT_A_FABRICAR - @cantidad END WHERE ID = @id`
 	_, err = db.Exec(query, sql.Named("cantidad", req.Cantidad), sql.Named("id", req.ID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update process"})
@@ -755,7 +763,7 @@ func editPlizadoapp(c *gin.Context) {
 	}
 	defer db.Close()
 
-	query := `UPDATE PLIZADO SET CANT_A_FABRICAR = CASE WHEN CANT_A_FABRICAR - @cantidad < 0 THEN 0 ELSE CANT_A_FABRICAR - @cantidad END, CANTIDAD_PRODUCIDA = ISNULL(CANTIDAD_PRODUCIDA,0) + @cantidad WHERE ID = @id`
+	query := `UPDATE PLIZADO SET CANT_A_FABRICAR = CASE WHEN CANT_A_FABRICAR - @cantidad < 0 THEN 0 ELSE CANT_A_FABRICAR - @cantidad END WHERE ID = @id`
 	_, err = db.Exec(query, sql.Named("cantidad", req.Cantidad), sql.Named("id", req.ID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update process"})
@@ -834,7 +842,7 @@ func editImpresionapp(c *gin.Context) {
 	}
 	defer db.Close()
 
-	query := `UPDATE PLIZADO SET CANT_A_FABRICAR = CASE WHEN CANT_A_FABRICAR - @cantidad < 0 THEN 0 ELSE CANT_A_FABRICAR - @cantidad END, CANTIDAD_PRODUCIDA = ISNULL(CANTIDAD_PRODUCIDA,0) + @cantidad WHERE ID = @id`
+	query := `UPDATE IMPRESION SET CANT_A_FABRICAR = CASE WHEN CANT_A_FABRICAR - @cantidad < 0 THEN 0 ELSE CANT_A_FABRICAR - @cantidad END WHERE ID = @id`
 	_, err = db.Exec(query, sql.Named("cantidad", req.Cantidad), sql.Named("id", req.ID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update process"})
@@ -913,7 +921,7 @@ func editCaladoapp(c *gin.Context) {
 	}
 	defer db.Close()
 
-	query := `UPDATE CALADO SET CANT_A_FABRICAR = CASE WHEN CANT_A_FABRICAR - @cantidad < 0 THEN 0 ELSE CANT_A_FABRICAR - @cantidad END, CANTIDAD_PRODUCIDA = ISNULL(CANTIDAD_PRODUCIDA,0) + @cantidad WHERE ID = @id`
+	query := `UPDATE CALADO SET CANT_A_FABRICAR = CASE WHEN CANT_A_FABRICAR - @cantidad < 0 THEN 0 ELSE CANT_A_FABRICAR - @cantidad END WHERE ID = @id`
 	_, err = db.Exec(query, sql.Named("cantidad", req.Cantidad), sql.Named("id", req.ID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update process"})

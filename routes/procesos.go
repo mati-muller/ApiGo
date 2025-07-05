@@ -1,12 +1,16 @@
 package routes
 
 import (
+	"database/sql"
 	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/exp/slices"
 )
+
+// Asegúrate de que la variable db esté disponible
+var db *sql.DB // Debe ser inicializada en el main o en otro archivo y ser accesible aquí
 
 func SetupProcesosRoutes(r *gin.Engine) {
 	r.GET("/procesos/data", getData)

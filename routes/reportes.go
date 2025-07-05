@@ -329,21 +329,11 @@ func updateStock(tx *sql.Tx, processID, quantity int, action string) error {
 			WHERE placa = @p1
 		`, detProd).Scan(&currentCantidad)
 		if err == sql.ErrNoRows {
-			// Calculate the next ID for the inventory record
-			var nextID int
-			err = tx.QueryRow(`
-				SELECT ISNULL(MAX(ID), 0) + 1 AS NextID
-				FROM inventario
-			`).Scan(&nextID)
-			if err != nil {
-				return fmt.Errorf("failed to calculate next ID for inventory: %v", err)
-			}
-
-			// Insert DETPROD into inventory with the calculated ID
+			// Insert DETPROD into inventory letting SQL Server auto-generate the ID
 			_, err = tx.Exec(`
-				INSERT INTO inventario (ID, placa, cantidad)
-				VALUES (@p1, @p2, @p3)
-			`, nextID, detProd, quantity)
+				INSERT INTO inventario (placa, cantidad)
+				VALUES (@p1, @p2)
+			`, detProd, quantity)
 			if err != nil {
 				return fmt.Errorf("failed to insert DETPROD into inventory: %v", err)
 			}
