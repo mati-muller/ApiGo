@@ -11,8 +11,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var db *sql.DB
-
 func init() {
 	// Load environment variables from .env file
 	if err := godotenv.Load(); err != nil {
@@ -213,5 +211,3 @@ func getUserByID(c *gin.Context) {
 		"rol":            user.Rol,
 	})
 }
-
-
