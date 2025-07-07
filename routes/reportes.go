@@ -219,13 +219,13 @@ func updateHandler(c *gin.Context) {
 	_, err = tx.Exec(`
 		INSERT INTO HISTORIAL (
 			ID_PROCESO, CANTIDAD, PLACA, PLACAS_USADAS, PLACAS_BUENAS, PLACAS_MALAS, 
-			TIEMPO_TOTAL, NUMERO_PERSONAS, STOCK, [USER], STOCK_CANT
+			TIEMPO_TOTAL, NUMERO_PERSONAS, STOCK, [USER], STOCK_CANT, despunte
 		) VALUES (
-			@p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11
+			@p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12
 		)
 	`, reqBody.ID, reqBody.SubtractValue, placasStr, placasUsadasStr,
 		placasBuenasStr, placasMalasStr, reqBody.TiempoTotal,
-		reqBody.NumeroPersonas, "", reqBody.User, reqBody.StockCant)
+		reqBody.NumeroPersonas, "", reqBody.User, reqBody.StockCant, reqBody.Despunte)
 	if err != nil {
 		tx.Rollback()
 		log.Println("Insert into HISTORIAL error:", err)
@@ -437,7 +437,7 @@ func getHistorialHandler(c *gin.Context) {
 	// Query the HISTORIAL table with a JOIN on procesos
 	rows, err := db.Query(`
         SELECT h.ID, h.ID_PROCESO, h.CANTIDAD, h.PLACA, h.PLACAS_USADAS, h.PLACAS_BUENAS, h.PLACAS_MALAS, 
-               h.TIEMPO_TOTAL, h.NUMERO_PERSONAS, h.STOCK, h.[USER], h.STOCK_CANT,
+               h.TIEMPO_TOTAL, h.NUMERO_PERSONAS, h.STOCK, h.[USER], h.STOCK_CANT, h.despunte,
                p.NVNUMERO, p.FECHA_ENTREGA, p.NOMAUX, p.NVCANT, p.DETPROD, p.PROCESO, h.FECHA
         FROM HISTORIAL h
         JOIN procesos p ON h.ID_PROCESO = p.ID
@@ -456,9 +456,10 @@ func getHistorialHandler(c *gin.Context) {
 			id, idProceso, cantidad, numeroPersonas, stockCant, nvnumero, nvcant                                int
 			placa, placasUsadas, placasBuenas, placasMalas, stock, user, fechaEntrega, nomaux, detprod, proceso string
 			tiempoTotal                                                                                         float64
+			despunte                                                                                            bool
 			fecha                                                                                               sql.NullString
 		)
-		if err := rows.Scan(&id, &idProceso, &cantidad, &placa, &placasUsadas, &placasBuenas, &placasMalas, &tiempoTotal, &numeroPersonas, &stock, &user, &stockCant, &nvnumero, &fechaEntrega, &nomaux, &nvcant, &detprod, &proceso, &fecha); err != nil {
+		if err := rows.Scan(&id, &idProceso, &cantidad, &placa, &placasUsadas, &placasBuenas, &placasMalas, &tiempoTotal, &numeroPersonas, &stock, &user, &stockCant, &despunte, &nvnumero, &fechaEntrega, &nomaux, &nvcant, &detprod, &proceso, &fecha); err != nil {
 			log.Println("Error scanning row:", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error scanning row"})
 			return
@@ -486,6 +487,7 @@ func getHistorialHandler(c *gin.Context) {
 			"STOCK":           stock,
 			"USER":            user,
 			"STOCK_CANT":      stockCant,
+			"despunte":        despunte,
 			"NVNUMERO":        nvnumero,
 			"FECHA_ENTREGA":   fechaEntrega,
 			"NOMAUX":          nomaux,

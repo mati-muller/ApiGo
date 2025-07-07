@@ -47,7 +47,7 @@ func getData(c *gin.Context) {
 func getPendientesEncolado(c *gin.Context) {
 	log.Println("[DEBUG] Entrando a getPendientesEncolado")
 	query := `
-		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, p2.CANT_A_PROD,
+		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.NVCANT, p2.CANT_A_PROD,
 			   JSON_QUERY((
 				   SELECT r.DesProd, r.CantMat
 				   FROM REPORTES.dbo.recetas r
@@ -65,7 +65,7 @@ func getPendientesEncolado(c *gin.Context) {
 
 func getPendientesEmplacado(c *gin.Context) {
 	query := `
-		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, p2.CANT_A_PROD,
+		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.NVCANT, p2.CANT_A_PROD,
 			   JSON_QUERY((
 				   SELECT r.DesProd, r.CantMat
 				   FROM REPORTES.dbo.recetas r
@@ -81,7 +81,7 @@ func getPendientesEmplacado(c *gin.Context) {
 
 func getPendientesTroquelado(c *gin.Context) {
 	query := `
-		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, p2.CANT_A_PROD,
+		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.NVCANT, p2.CANT_A_PROD,
 			   JSON_QUERY((
 				   SELECT r.DesProd, r.CantMat
 				   FROM REPORTES.dbo.recetas r
@@ -97,7 +97,7 @@ func getPendientesTroquelado(c *gin.Context) {
 
 func getPendientesCalado(c *gin.Context) {
 	query := `
-		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, p2.CANT_A_PROD,
+		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.NVCANT, p2.CANT_A_PROD,
 			   JSON_QUERY((
 				   SELECT r.DesProd, r.CantMat
 				   FROM REPORTES.dbo.recetas r
@@ -113,7 +113,7 @@ func getPendientesCalado(c *gin.Context) {
 
 func getPendientesPegado(c *gin.Context) {
 	query := `
-		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, p2.CANT_A_PROD,
+		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.NVCANT, p2.CANT_A_PROD,
 			   JSON_QUERY((
 				   SELECT r.DesProd, r.CantMat
 				   FROM REPORTES.dbo.recetas r
@@ -129,7 +129,7 @@ func getPendientesPegado(c *gin.Context) {
 
 func getPendientesPlizado(c *gin.Context) {
 	query := `
-		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, p2.CANT_A_PROD,
+		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.NVCANT, p2.CANT_A_PROD,
 			   JSON_QUERY((
 				   SELECT r.DesProd, r.CantMat
 				   FROM REPORTES.dbo.recetas r
@@ -145,7 +145,7 @@ func getPendientesPlizado(c *gin.Context) {
 
 func getPendientesTrozado(c *gin.Context) {
 	query := `
-		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, p2.CANT_A_PROD,
+		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.NVCANT, p2.CANT_A_PROD,
 			   JSON_QUERY((
 				   SELECT r.DesProd, r.CantMat
 				   FROM REPORTES.dbo.recetas r
@@ -161,7 +161,7 @@ func getPendientesTrozado(c *gin.Context) {
 
 func getPendientesImpresion(c *gin.Context) {
 	query := `
-		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, p2.CANT_A_PROD,
+		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.NVCANT, p2.CANT_A_PROD,
 			   JSON_QUERY((
 				   SELECT r.DesProd, r.CantMat
 				   FROM REPORTES.dbo.recetas r
@@ -177,7 +177,7 @@ func getPendientesImpresion(c *gin.Context) {
 
 func getPendientesMultiple(c *gin.Context) {
 	query := `
-		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, p2.CANT_A_PROD,
+		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.NVCANT, p2.CANT_A_PROD,
 			   JSON_QUERY((
 				   SELECT r.DesProd, r.CantMat
 				   FROM REPORTES.dbo.recetas r
@@ -193,7 +193,7 @@ func getPendientesMultiple(c *gin.Context) {
 
 func getPendientesOtro(c *gin.Context) {
 	query := `
-		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, p2.CANT_A_PROD,
+		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.NVCANT, p2.CANT_A_PROD,
 			   JSON_QUERY((
 				   SELECT r.CodMat, r.CantMat
 				   FROM REPORTES.dbo.recetas r
@@ -221,10 +221,10 @@ func getNV(c *gin.Context) {
 			p.NOMAUX,
 			p.PROCESO, 
 			p2.ESTADO_PROC, 
-			p.CANTPROD,
+			p.NVCANT,
 			p2.CANT_A_PROD,
 			p.FECHA_ENTREGA,
-			(p.CANTPROD - p2.CANT_A_PROD) AS cantidad_producida
+			(p.NVCANT - p2.CANT_A_PROD) AS cantidad_producida
 		FROM procesos p
 		JOIN procesos2 p2 ON p.ID = p2.ID
 		WHERE p.PROCESO != 'OTRO'
