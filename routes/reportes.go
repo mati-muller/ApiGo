@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	_ "github.com/denisenkom/go-mssqldb"
 	"github.com/gin-gonic/gin"
@@ -434,14 +435,39 @@ func getHistorialHandler(c *gin.Context) {
 	}
 	defer db.Close()
 
-	// Query the HISTORIAL table with a JOIN on procesos
-	rows, err := db.Query(`
+	// Get query parameters for date filtering
+	fechaInicio := c.Query("fecha_inicio")
+	fechaFin := c.Query("fecha_fin")
+
+	// Build query with optional date filtering
+	query := `
         SELECT h.ID, h.ID_PROCESO, h.CANTIDAD, h.PLACA, h.PLACAS_USADAS, h.PLACAS_BUENAS, h.PLACAS_MALAS, 
                h.TIEMPO_TOTAL, h.NUMERO_PERSONAS, h.STOCK, h.[USER], h.STOCK_CANT, h.despunte,
                p.NVNUMERO, p.FECHA_ENTREGA, p.NOMAUX, p.NVCANT, p.DETPROD, p.PROCESO, h.FECHA
         FROM HISTORIAL h
-        JOIN procesos p ON h.ID_PROCESO = p.ID
-    `)
+        JOIN procesos p ON h.ID_PROCESO = p.ID`
+
+	var args []interface{}
+	var whereClause []string
+
+	if fechaInicio != "" {
+		whereClause = append(whereClause, "p.FECHA_ENTREGA >= ?")
+		args = append(args, fechaInicio)
+	}
+
+	if fechaFin != "" {
+		whereClause = append(whereClause, "p.FECHA_ENTREGA <= ?")
+		args = append(args, fechaFin)
+	}
+
+	if len(whereClause) > 0 {
+		query += " WHERE " + strings.Join(whereClause, " AND ")
+	}
+
+	// Add ordering by fecha_entrega (oldest to newest)
+	query += " ORDER BY p.FECHA_ENTREGA ASC"
+
+	rows, err := db.Query(query, args...)
 	if err != nil {
 		log.Println("Error querying HISTORIAL table with JOIN:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error querying HISTORIAL table with JOIN"})

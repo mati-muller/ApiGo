@@ -144,6 +144,7 @@ func addPlacas(c *gin.Context) {
 		PrecioPP    float64 `json:"preciopp"`
 		PrecioTotal float64 `json:"precio_total"`
 		Cantidad    int     `json:"cantidad"`
+		OC          string  `json:"oc"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input", "details": err.Error()})
@@ -160,8 +161,8 @@ func addPlacas(c *gin.Context) {
 
 	// Insert data into the database
 	_, err = db.Exec(
-		"INSERT INTO inventario (placa, fecha_compra, precio_pp, precio_total, cantidad) VALUES (@p1, @p2, @p3, @p4, @p5)",
-		input.Placa, input.Fecha, input.PrecioPP, input.PrecioTotal, input.Cantidad,
+		"INSERT INTO inventario (placa, fecha_compra, precio_pp, precio_total, cantidad, oc) VALUES (@p1, @p2, @p3, @p4, @p5, @p6)",
+		input.Placa, input.Fecha, input.PrecioPP, input.PrecioTotal, input.Cantidad, input.OC,
 	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert data", "details": err.Error()})

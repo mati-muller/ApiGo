@@ -57,6 +57,7 @@ func getPendientesEncolado(c *gin.Context) {
 		FROM REPORTES.dbo.procesos p
 		JOIN REPORTES.dbo.procesos2 p2 ON p.ID = p2.ID
 		WHERE p2.ESTADO_PROC = 'PENDIENTE' AND p.PROCESO = 'ENCOLADO'
+		ORDER BY p.FECHA_ENTREGA ASC
 	`
 	log.Println("[DEBUG] Ejecutando queryDatabase en getPendientesEncolado")
 	queryDatabase(c, query)
@@ -75,6 +76,7 @@ func getPendientesEmplacado(c *gin.Context) {
 		FROM REPORTES.dbo.procesos p
 		JOIN REPORTES.dbo.procesos2 p2 ON p.ID = p2.ID
 		WHERE p2.ESTADO_PROC = 'PENDIENTE' AND p.PROCESO = 'EMPLACADO'
+		ORDER BY p.FECHA_ENTREGA ASC
 	`
 	queryDatabase(c, query)
 }
@@ -91,6 +93,7 @@ func getPendientesTroquelado(c *gin.Context) {
 		FROM REPORTES.dbo.procesos p
 		JOIN REPORTES.dbo.procesos2 p2 ON p.ID = p2.ID
 		WHERE p2.ESTADO_PROC = 'PENDIENTE' AND p.PROCESO = 'TROQUELADO'
+		ORDER BY p.FECHA_ENTREGA ASC
 	`
 	queryDatabase(c, query)
 }
@@ -107,6 +110,7 @@ func getPendientesCalado(c *gin.Context) {
 		FROM REPORTES.dbo.procesos p
 		JOIN REPORTES.dbo.procesos2 p2 ON p.ID = p2.ID
 		WHERE p2.ESTADO_PROC = 'PENDIENTE' AND p.PROCESO = 'CALADO'
+		ORDER BY p.FECHA_ENTREGA ASC
 	`
 	queryDatabase(c, query)
 }
@@ -123,6 +127,7 @@ func getPendientesPegado(c *gin.Context) {
 		FROM REPORTES.dbo.procesos p
 		JOIN REPORTES.dbo.procesos2 p2 ON p.ID = p2.ID
 		WHERE p2.ESTADO_PROC = 'PENDIENTE' AND p.PROCESO = 'PEGADO'
+		ORDER BY p.FECHA_ENTREGA ASC
 	`
 	queryDatabase(c, query)
 }
@@ -139,6 +144,7 @@ func getPendientesPlizado(c *gin.Context) {
 		FROM REPORTES.dbo.procesos p
 		JOIN REPORTES.dbo.procesos2 p2 ON p.ID = p2.ID
 		WHERE p2.ESTADO_PROC = 'PENDIENTE' AND p.PROCESO = 'PLIZADO'
+		ORDER BY p.FECHA_ENTREGA ASC
 	`
 	queryDatabase(c, query)
 }
@@ -155,6 +161,7 @@ func getPendientesTrozado(c *gin.Context) {
 		FROM REPORTES.dbo.procesos p
 		JOIN REPORTES.dbo.procesos2 p2 ON p.ID = p2.ID
 		WHERE p2.ESTADO_PROC = 'PENDIENTE' AND p.PROCESO = 'TROZADO'
+		ORDER BY p.FECHA_ENTREGA ASC
 	`
 	queryDatabase(c, query)
 }
@@ -171,6 +178,7 @@ func getPendientesImpresion(c *gin.Context) {
 		FROM REPORTES.dbo.procesos p
 		JOIN REPORTES.dbo.procesos2 p2 ON p.ID = p2.ID
 		WHERE p2.ESTADO_PROC = 'PENDIENTE' AND p.PROCESO = 'IMPRESION'
+		ORDER BY p.FECHA_ENTREGA ASC
 	`
 	queryDatabase(c, query)
 }
@@ -187,6 +195,7 @@ func getPendientesMultiple(c *gin.Context) {
 		FROM REPORTES.dbo.procesos p
 		JOIN REPORTES.dbo.procesos2 p2 ON p.ID = p2.ID
 		WHERE p2.ESTADO_PROC = 'PENDIENTE' AND p.PROCESO = 'MULTIPLE'
+		ORDER BY p.FECHA_ENTREGA ASC
 	`
 	queryDatabase(c, query)
 }
@@ -203,6 +212,7 @@ func getPendientesOtro(c *gin.Context) {
 		FROM REPORTES.dbo.procesos p
 		JOIN REPORTES.dbo.procesos2 p2 ON p.ID = p2.ID
 		WHERE p2.ESTADO_PROC = 'PENDIENTE' AND p.PROCESO = 'OTRO'
+		ORDER BY p.FECHA_ENTREGA ASC
 	`
 	queryDatabase(c, query)
 }
@@ -214,6 +224,10 @@ func getEncoladoProcesos(c *gin.Context) {
 }
 
 func getNV(c *gin.Context) {
+	// Get query parameters for date filtering
+	fechaInicio := c.Query("fecha_inicio")
+	fechaFin := c.Query("fecha_fin")
+
 	query := `
 		SELECT 
 			p.NVNUMERO,
@@ -227,9 +241,24 @@ func getNV(c *gin.Context) {
 			(p.NVCANT - p2.CANT_A_PROD) AS cantidad_producida
 		FROM procesos p
 		JOIN procesos2 p2 ON p.ID = p2.ID
-		WHERE p.PROCESO != 'OTRO'
-	`
-	rows, err := db.Query(query)
+		WHERE p.PROCESO != 'OTRO'`
+
+	var args []interface{}
+
+	if fechaInicio != "" {
+		query += " AND p.FECHA_ENTREGA >= ?"
+		args = append(args, fechaInicio)
+	}
+
+	if fechaFin != "" {
+		query += " AND p.FECHA_ENTREGA <= ?"
+		args = append(args, fechaFin)
+	}
+
+	// Add ordering by fecha_entrega (oldest to newest)
+	query += " ORDER BY p.FECHA_ENTREGA ASC"
+
+	rows, err := db.Query(query, args...)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
