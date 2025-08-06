@@ -85,11 +85,12 @@ func updateHandler(c *gin.Context) {
 
 	// Fetch current data
 	var currentPlacas, currentPlacasUsadas, currentPlacasBuenas, currentPlacasMalas, currentUser sql.NullString
+	var currentDespunte bool
 	err = tx.QueryRow(`
-		SELECT PLACA, PLACAS_USADAS, PLACAS_BUENAS, PLACAS_MALAS, [USER]
+		SELECT PLACA, PLACAS_USADAS, PLACAS_BUENAS, PLACAS_MALAS, [USER], despunte
 		FROM procesos2
 		WHERE ID = @p1
-	`, reqBody.ID).Scan(&currentPlacas, &currentPlacasUsadas, &currentPlacasBuenas, &currentPlacasMalas, &currentUser)
+	`, reqBody.ID).Scan(&currentPlacas, &currentPlacasUsadas, &currentPlacasBuenas, &currentPlacasMalas, &currentUser, &currentDespunte)
 	if err == sql.ErrNoRows {
 		tx.Rollback()
 		c.JSON(http.StatusNotFound, gin.H{"error": "Record not found"})
@@ -129,6 +130,9 @@ func updateHandler(c *gin.Context) {
 	} else if userStr == "" {
 		userStr = reqBody.User
 	}
+
+	// Handle despunte logic: if it's already true, keep it true; otherwise use the new value
+	finalDespunte := currentDespunte || reqBody.Despunte
 
 	// Parse JSON fields
 	var placas []string
@@ -199,7 +203,7 @@ func updateHandler(c *gin.Context) {
 			despunte = @p11
 		WHERE ID = @p10
 	`, reqBody.SubtractValue, placasStr, placasUsadasStr, placasBuenasStr, placasMalasStr,
-		reqBody.TiempoTotal, userStr, reqBody.StockCant, reqBody.NumeroPersonas, reqBody.ID, reqBody.Despunte)
+		reqBody.TiempoTotal, userStr, reqBody.StockCant, reqBody.NumeroPersonas, reqBody.ID, finalDespunte)
 	if err != nil {
 		tx.Rollback()
 		log.Println("Update error:", err)
@@ -464,8 +468,8 @@ func getHistorialHandler(c *gin.Context) {
 		query += " WHERE " + strings.Join(whereClause, " AND ")
 	}
 
-	// Add ordering by fecha_entrega (oldest to newest)
-	query += " ORDER BY p.FECHA_ENTREGA ASC"
+	// Add ordering by HISTORIAL.FECHA (created at) descending (newest first)
+	query += " ORDER BY h.FECHA DESC"
 
 	rows, err := db.Query(query, args...)
 	if err != nil {
