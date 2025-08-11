@@ -2,23 +2,30 @@ package main
 
 import (
 	"ApiGo/routes"
+	"log"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
 // Rate limiting middleware with a sliding window
 func rateLimit() gin.HandlerFunc {
 	limiter := make(map[string][]time.Time)
+	var mu sync.RWMutex
 	const maxRequests = 1000
 	const window = time.Minute
 
 	return func(c *gin.Context) {
 		clientIP := c.ClientIP()
 		now := time.Now()
+
+		mu.Lock()
+		defer mu.Unlock()
 
 		// Clean up old requests outside the window
 		requests := limiter[clientIP]
@@ -44,6 +51,11 @@ func rateLimit() gin.HandlerFunc {
 }
 
 func main() {
+	// Load environment variables from .env file
+	if err := godotenv.Load(); err != nil {
+		log.Printf("Warning: .env file not found: %v", err)
+	}
+
 	r := gin.Default()
 
 	// Enable CORS middleware
