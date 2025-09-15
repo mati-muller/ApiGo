@@ -84,6 +84,7 @@ func main() {
 	routes.SetupUserDataRoutes(r)
 	routes.SetupProcAppRoutes(r)
 	routes.SetupEditsApp(r)
+	routes.SetupProcAppFechaRoutes(r)
 
 	// Use environment variable PORT or default to 8080
 	port := os.Getenv("PORT")

@@ -256,7 +256,7 @@ func getNV(c *gin.Context) {
 	}
 
 	// Add ordering by fecha_entrega (oldest to newest)
-	query += " ORDER BY p.FECHA_ENTREGA ASC"
+	query += " ORDER BY p.NVNUMERO ASC, p.DetProd ASC, p.FECHA_ENTREGA ASC"
 
 	rows, err := db.Query(query, args...)
 	if err != nil {
@@ -268,7 +268,7 @@ func getNV(c *gin.Context) {
 	type Proceso struct {
 		PROCESO           string `json:"PROCESO"`
 		ESTADO_PROC       string `json:"ESTADO_PROC"`
-		CANTPROD          int    `json:"CANTPROD"`
+		NVCANT            int    `json:"NVCANT"`
 		CANT_A_PROD       int    `json:"CANT_A_PROD"`
 		FECHA_ENTREGA     string `json:"FECHA_ENTREGA"`
 		CantidadProducida int    `json:"cantidad_producida"`
@@ -281,6 +281,7 @@ func getNV(c *gin.Context) {
 		Procesos []Proceso `json:"procesos"`
 	}
 
+	// Cambiar la clave para incluir tanto NVNUMERO como DetProd
 	groupedData := map[string]*NV{}
 
 	for rows.Next() {
@@ -292,8 +293,11 @@ func getNV(c *gin.Context) {
 			return
 		}
 
-		if _, exists := groupedData[nvnumero]; !exists {
-			groupedData[nvnumero] = &NV{
+		// Crear clave única combinando NVNUMERO y DetProd
+		key := nvnumero + "|" + detprod
+
+		if _, exists := groupedData[key]; !exists {
+			groupedData[key] = &NV{
 				NVNUMERO: nvnumero,
 				DetProd:  detprod,
 				NOMAUX:   nomaux,
@@ -301,10 +305,10 @@ func getNV(c *gin.Context) {
 			}
 		}
 
-		groupedData[nvnumero].Procesos = append(groupedData[nvnumero].Procesos, Proceso{
+		groupedData[key].Procesos = append(groupedData[key].Procesos, Proceso{
 			PROCESO:           proceso,
 			ESTADO_PROC:       estadoProc,
-			CANTPROD:          cantprod,
+			NVCANT:            cantprod,
 			CANT_A_PROD:       cantAProd,
 			FECHA_ENTREGA:     fechaEntrega,
 			CantidadProducida: cantidadProducida,
@@ -316,12 +320,18 @@ func getNV(c *gin.Context) {
 		result = append(result, *nv)
 	}
 
-	// Ordenar el resultado por NVNUMERO de menor a mayor
+	// Ordenar el resultado por NVNUMERO de menor a mayor, luego por DetProd
 	slices.SortFunc(result, func(a, b NV) int {
 		if a.NVNUMERO < b.NVNUMERO {
 			return -1
 		}
 		if a.NVNUMERO > b.NVNUMERO {
+			return 1
+		}
+		if a.DetProd < b.DetProd {
+			return -1
+		}
+		if a.DetProd > b.DetProd {
 			return 1
 		}
 		return 0
