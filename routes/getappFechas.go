@@ -24,9 +24,11 @@ func SetupProcAppFechaRoutes(r *gin.Engine) {
 func getTroqueladoFecha(c *gin.Context) {
 	query := `
 		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
-		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS
+		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS,
+		       proc2.CANT_A_PROD
 		FROM procesos p
 		JOIN TROQUELADO p2 ON p.ID = p2.ID
+		JOIN procesos2 proc2 ON p.ID = proc2.ID
 		WHERE CAST(p2.createdat AS DATE) = CAST(GETDATE() AS DATE)
 		ORDER BY p2.PRIORITY
 	`
@@ -36,9 +38,11 @@ func getTroqueladoFecha(c *gin.Context) {
 func getTroquelado2Fecha(c *gin.Context) {
 	query := `
 		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
-		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS
+		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS,
+		       proc2.CANT_A_PROD
 		FROM procesos p
 		JOIN TROQUELADO2 p2 ON p.ID = p2.ID
+		JOIN procesos2 proc2 ON p.ID = proc2.ID
 		WHERE CAST(p2.createdat AS DATE) = CAST(GETDATE() AS DATE)
 		ORDER BY p2.PRIORITY
 	`
@@ -48,9 +52,11 @@ func getTroquelado2Fecha(c *gin.Context) {
 func getEncoladoFecha(c *gin.Context) {
 	query := `
 		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
-		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS
+		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS,
+		       proc2.CANT_A_PROD
 		FROM procesos p
 		JOIN REPORTES.dbo.ENCOLADO p2 ON p.ID = p2.ID
+		JOIN procesos2 proc2 ON p.ID = proc2.ID
 		WHERE CAST(p2.createdat AS DATE) = CAST(GETDATE() AS DATE)
 		ORDER BY p2.PRIORITY
 	`
@@ -60,9 +66,11 @@ func getEncoladoFecha(c *gin.Context) {
 func getEncolado2Fecha(c *gin.Context) {
 	query := `
 		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
-		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS
+		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS,
+		       proc2.CANT_A_PROD
 		FROM procesos p
 		JOIN ENCOLADO2 p2 ON p.ID = p2.ID
+		JOIN procesos2 proc2 ON p.ID = proc2.ID
 		WHERE CAST(p2.createdat AS DATE) = CAST(GETDATE() AS DATE)
 		ORDER BY p2.PRIORITY
 	`
@@ -72,9 +80,11 @@ func getEncolado2Fecha(c *gin.Context) {
 func getMultipleFecha(c *gin.Context) {
 	query := `
 		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
-		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS
+		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS,
+		       proc2.CANT_A_PROD
 		FROM procesos p
 		JOIN MULTIPLE p2 ON p.ID = p2.ID
+		JOIN procesos2 proc2 ON p.ID = proc2.ID
 		WHERE CAST(p2.createdat AS DATE) = CAST(GETDATE() AS DATE)
 		ORDER BY p2.PRIORITY
 	`
@@ -84,9 +94,11 @@ func getMultipleFecha(c *gin.Context) {
 func getMultiple2Fecha(c *gin.Context) {
 	query := `
 		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
-		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS
+		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS,
+		       proc2.CANT_A_PROD
 		FROM procesos p
 		JOIN MULTIPLE2 p2 ON p.ID = p2.ID
+		JOIN procesos2 proc2 ON p.ID = proc2.ID
 		WHERE CAST(p2.createdat AS DATE) = CAST(GETDATE() AS DATE)
 		ORDER BY p2.PRIORITY
 	`
@@ -95,9 +107,11 @@ func getMultiple2Fecha(c *gin.Context) {
 func getPegadoFecha(c *gin.Context) {
 	query := `
 		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
-		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS
+		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS,
+		       proc2.CANT_A_PROD
 		FROM procesos p
 		JOIN PEGADO p2 ON p.ID = p2.ID
+		JOIN procesos2 proc2 ON p.ID = proc2.ID
 		WHERE CAST(p2.createdat AS DATE) = CAST(GETDATE() AS DATE)
 		ORDER BY p2.PRIORITY
 	`
@@ -106,9 +120,11 @@ func getPegadoFecha(c *gin.Context) {
 func getTrozadoFecha(c *gin.Context) {
 	query := `
 		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
-		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS
+		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS,
+		       proc2.CANT_A_PROD
 		FROM procesos p
 		JOIN TROZADO p2 ON p.ID = p2.ID
+		JOIN procesos2 proc2 ON p.ID = proc2.ID
 		WHERE CAST(p2.createdat AS DATE) = CAST(GETDATE() AS DATE)
 		ORDER BY p2.PRIORITY
 	`
@@ -117,9 +133,11 @@ func getTrozadoFecha(c *gin.Context) {
 func getImpresionFecha(c *gin.Context) {
 	query := `
 		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
-		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS
+		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS,
+		       proc2.CANT_A_PROD
 		FROM procesos p
 		JOIN IMPRESION p2 ON p.ID = p2.ID
+		JOIN procesos2 proc2 ON p.ID = proc2.ID
 		WHERE CAST(p2.createdat AS DATE) = CAST(GETDATE() AS DATE)
 		ORDER BY p2.PRIORITY
 	`
@@ -128,9 +146,11 @@ func getImpresionFecha(c *gin.Context) {
 func getCaladoFecha(c *gin.Context) {
 	query := `
 		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
-		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS
+		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS,
+		       proc2.CANT_A_PROD
 		FROM procesos p
 		JOIN CALADO p2 ON p.ID = p2.ID
+		JOIN procesos2 proc2 ON p.ID = proc2.ID
 		WHERE CAST(p2.createdat AS DATE) = CAST(GETDATE() AS DATE)
 		ORDER BY p2.PRIORITY
 	`
@@ -139,9 +159,11 @@ func getCaladoFecha(c *gin.Context) {
 func getPlizadoFecha(c *gin.Context) {
 	query := `
 		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
-		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS
+		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS,
+		       proc2.CANT_A_PROD
 		FROM procesos p
 		JOIN PLIZADO p2 ON p.ID = p2.ID
+		JOIN procesos2 proc2 ON p.ID = proc2.ID
 		WHERE CAST(p2.createdat AS DATE) = CAST(GETDATE() AS DATE)
 		ORDER BY p2.PRIORITY
 	`
@@ -150,9 +172,11 @@ func getPlizadoFecha(c *gin.Context) {
 func getEmplacadoFecha(c *gin.Context) {
 	query := `
 		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
-		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS
+		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS,
+		       proc2.CANT_A_PROD
 		FROM procesos p
 		JOIN EMPLACADO p2 ON p.ID = p2.ID
+		JOIN procesos2 proc2 ON p.ID = proc2.ID
 		WHERE CAST(p2.createdat AS DATE) = CAST(GETDATE() AS DATE)
 		ORDER BY p2.PRIORITY
 	`

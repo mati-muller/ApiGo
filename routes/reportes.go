@@ -88,7 +88,7 @@ func updateHandler(c *gin.Context) {
 	var currentDespunte bool
 	err = tx.QueryRow(`
 		SELECT PLACA, PLACAS_USADAS, PLACAS_BUENAS, PLACAS_MALAS, [USER], despunte
-		FROM procesos2
+		FROM REPORTES.dbo.procesos2
 		WHERE ID = @p1
 	`, reqBody.ID).Scan(&currentPlacas, &currentPlacasUsadas, &currentPlacasBuenas, &currentPlacasMalas, &currentUser, &currentDespunte)
 	if err == sql.ErrNoRows {
@@ -188,7 +188,7 @@ func updateHandler(c *gin.Context) {
 	placasMalasStr = string(placasMalasBytes)
 
 	_, err = tx.Exec(`
-		UPDATE procesos2
+		UPDATE REPORTES.dbo.procesos2
 		SET CANT_A_PROD = CASE WHEN CANT_A_PROD - @p1 <= 0 THEN 0 ELSE CANT_A_PROD - @p1 END,
 			CANT_PROD = CANT_PROD + @p1,
 			ESTADO_PROC = CASE WHEN CANT_A_PROD - @p1 <= 0 THEN 'LISTO' ELSE ESTADO_PROC END,
@@ -222,7 +222,7 @@ func updateHandler(c *gin.Context) {
 	placasMalasStr = string(placasMalasBytes)
 
 	_, err = tx.Exec(`
-		INSERT INTO HISTORIAL (
+		INSERT INTO REPORTES.dbo.HISTORIAL (
 			ID_PROCESO, CANTIDAD, PLACA, PLACAS_USADAS, PLACAS_BUENAS, PLACAS_MALAS, 
 			TIEMPO_TOTAL, NUMERO_PERSONAS, STOCK, [USER], STOCK_CANT, despunte
 		) VALUES (
@@ -309,7 +309,7 @@ func updateStock(tx *sql.Tx, processID, quantity int, action string) error {
 	var detProd string
 	err := tx.QueryRow(`
 		SELECT DETPROD
-		FROM procesos
+		FROM REPORTES.dbo.procesos
 		WHERE ID = @p1
 	`, processID).Scan(&detProd)
 	if err != nil {
@@ -319,7 +319,7 @@ func updateStock(tx *sql.Tx, processID, quantity int, action string) error {
 	if action == "Add" {
 		// Update STOCK_CANT in procesos2
 		_, err := tx.Exec(`
-			UPDATE procesos2
+			UPDATE REPORTES.dbo.procesos2
 			SET STOCK = 'Add',
 				STOCK_CANT = STOCK_CANT + @p1
 			WHERE ID = @p2
@@ -332,13 +332,13 @@ func updateStock(tx *sql.Tx, processID, quantity int, action string) error {
 		var currentCantidad int
 		err = tx.QueryRow(`
 			SELECT cantidad
-			FROM inventario
+			FROM REPORTES.dbo.inventario
 			WHERE placa = @p1
 		`, detProd).Scan(&currentCantidad)
 		if err == sql.ErrNoRows {
 			// Insert DETPROD into inventory letting SQL Server auto-generate the ID
 			_, err = tx.Exec(`
-				INSERT INTO inventario (placa, cantidad)
+				INSERT INTO REPORTES.dbo.inventario (placa, cantidad)
 				VALUES (@p1, @p2)
 			`, detProd, quantity)
 			if err != nil {
@@ -349,7 +349,7 @@ func updateStock(tx *sql.Tx, processID, quantity int, action string) error {
 		} else {
 			// Update existing inventory record for DETPROD
 			_, err = tx.Exec(`
-				UPDATE inventario
+				UPDATE REPORTES.dbo.inventario
 				SET cantidad = cantidad + @p1
 				WHERE placa = @p2
 			`, quantity, detProd)
@@ -360,7 +360,7 @@ func updateStock(tx *sql.Tx, processID, quantity int, action string) error {
 	} else if action == "Remove" {
 		// Update STOCK_CANT in procesos2
 		_, err := tx.Exec(`
-			UPDATE procesos2
+			UPDATE REPORTES.dbo.procesos2
 			SET STOCK = 'Remove',
 				STOCK_CANT = CASE WHEN STOCK_CANT - @p1 < 0 THEN 0 ELSE STOCK_CANT - @p1 END
 			WHERE ID = @p2
@@ -371,7 +371,7 @@ func updateStock(tx *sql.Tx, processID, quantity int, action string) error {
 
 		// Deduct DETPROD from inventory
 		_, err = tx.Exec(`
-			UPDATE inventario
+			UPDATE REPORTES.dbo.inventario
 			SET cantidad = CASE WHEN cantidad - @p1 < 0 THEN 0 ELSE cantidad - @p1 END
 			WHERE placa = @p2
 		`, quantity, detProd)
@@ -388,7 +388,7 @@ func updateStock(tx *sql.Tx, processID, quantity int, action string) error {
 func deductInventory(tx *sql.Tx, placa string, quantityToDeduct int) error {
 	rows, err := tx.Query(`
 		SELECT ID, cantidad
-		FROM inventario
+		FROM REPORTES.dbo.inventario
 		WHERE placa = @p1
 		ORDER BY ID ASC
 	`, placa)
@@ -409,7 +409,7 @@ func deductInventory(tx *sql.Tx, placa string, quantityToDeduct int) error {
 
 		subtractFromCurrent := min(currentCantidad, quantityToDeduct)
 		_, err := tx.Exec(`
-			UPDATE inventario
+			UPDATE REPORTES.dbo.inventario
 			SET cantidad_total_usada = cantidad_total_usada + @p1,
 				cantidad = CASE WHEN cantidad - @p1 <= 0 THEN 0 ELSE cantidad - @p1 END,
 				precio_total = (CASE WHEN cantidad - @p1 <= 0 THEN 0 ELSE cantidad - @p1 END) * precio_pp
@@ -448,8 +448,8 @@ func getHistorialHandler(c *gin.Context) {
         SELECT h.ID, h.ID_PROCESO, h.CANTIDAD, h.PLACA, h.PLACAS_USADAS, h.PLACAS_BUENAS, h.PLACAS_MALAS, 
                h.TIEMPO_TOTAL, h.NUMERO_PERSONAS, h.STOCK, h.[USER], h.STOCK_CANT, h.despunte,
                p.NVNUMERO, p.FECHA_ENTREGA, p.NOMAUX, p.NVCANT, p.DETPROD, p.PROCESO, h.FECHA
-        FROM HISTORIAL h
-        JOIN procesos p ON h.ID_PROCESO = p.ID`
+        FROM REPORTES.dbo.HISTORIAL h
+        JOIN REPORTES.dbo.procesos p ON h.ID_PROCESO = p.ID`
 
 	var args []interface{}
 	var whereClause []string
