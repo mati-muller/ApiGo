@@ -25,7 +25,7 @@ func getTroqueladoFecha(c *gin.Context) {
 	query := `
 		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
 		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS,
-		       proc2.CANT_A_PROD
+		       proc2.CANT_PROD as CANT_A_PROD
 		FROM procesos p
 		JOIN TROQUELADO p2 ON p.ID = p2.ID
 		JOIN procesos2 proc2 ON p.ID = proc2.ID
@@ -39,7 +39,7 @@ func getTroquelado2Fecha(c *gin.Context) {
 	query := `
 		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
 		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS,
-		       proc2.CANT_A_PROD
+		       proc2.CANT_PROD as CANT_A_PROD
 		FROM procesos p
 		JOIN TROQUELADO2 p2 ON p.ID = p2.ID
 		JOIN procesos2 proc2 ON p.ID = proc2.ID
@@ -53,7 +53,7 @@ func getEncoladoFecha(c *gin.Context) {
 	query := `
 		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
 		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS,
-		       proc2.CANT_A_PROD
+		       proc2.CANT_PROD as CANT_A_PROD
 		FROM procesos p
 		JOIN REPORTES.dbo.ENCOLADO p2 ON p.ID = p2.ID
 		JOIN procesos2 proc2 ON p.ID = proc2.ID
@@ -67,7 +67,7 @@ func getEncolado2Fecha(c *gin.Context) {
 	query := `
 		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
 		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS,
-		       proc2.CANT_A_PROD
+		       proc2.CANT_PROD as CANT_A_PROD
 		FROM procesos p
 		JOIN ENCOLADO2 p2 ON p.ID = p2.ID
 		JOIN procesos2 proc2 ON p.ID = proc2.ID
@@ -81,7 +81,7 @@ func getMultipleFecha(c *gin.Context) {
 	query := `
 		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
 		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS,
-		       proc2.CANT_A_PROD
+		       proc2.CANT_PROD as CANT_A_PROD
 		FROM procesos p
 		JOIN MULTIPLE p2 ON p.ID = p2.ID
 		JOIN procesos2 proc2 ON p.ID = proc2.ID
@@ -95,7 +95,7 @@ func getMultiple2Fecha(c *gin.Context) {
 	query := `
 		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
 		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS,
-		       proc2.CANT_A_PROD
+		       proc2.CANT_PROD as CANT_A_PROD
 		FROM procesos p
 		JOIN MULTIPLE2 p2 ON p.ID = p2.ID
 		JOIN procesos2 proc2 ON p.ID = proc2.ID
@@ -108,7 +108,7 @@ func getPegadoFecha(c *gin.Context) {
 	query := `
 		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
 		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS,
-		       proc2.CANT_A_PROD
+		       proc2.CANT_PROD as CANT_A_PROD
 		FROM procesos p
 		JOIN PEGADO p2 ON p.ID = p2.ID
 		JOIN procesos2 proc2 ON p.ID = proc2.ID
@@ -121,7 +121,7 @@ func getTrozadoFecha(c *gin.Context) {
 	query := `
 		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
 		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS,
-		       proc2.CANT_A_PROD
+		       proc2.CANT_PROD as CANT_A_PROD
 		FROM procesos p
 		JOIN TROZADO p2 ON p.ID = p2.ID
 		JOIN procesos2 proc2 ON p.ID = proc2.ID
@@ -134,7 +134,7 @@ func getImpresionFecha(c *gin.Context) {
 	query := `
 		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
 		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS,
-		       proc2.CANT_A_PROD
+		       proc2.CANT_PROD as CANT_A_PROD
 		FROM procesos p
 		JOIN IMPRESION p2 ON p.ID = p2.ID
 		JOIN procesos2 proc2 ON p.ID = proc2.ID
@@ -147,7 +147,7 @@ func getCaladoFecha(c *gin.Context) {
 	query := `
 		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
 		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS,
-		       proc2.CANT_A_PROD
+		       proc2.CANT_PROD as CANT_A_PROD
 		FROM procesos p
 		JOIN CALADO p2 ON p.ID = p2.ID
 		JOIN procesos2 proc2 ON p.ID = proc2.ID
@@ -160,7 +160,7 @@ func getPlizadoFecha(c *gin.Context) {
 	query := `
 		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
 		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS,
-		       proc2.CANT_A_PROD
+		       proc2.CANT_PROD as CANT_A_PROD
 		FROM procesos p
 		JOIN PLIZADO p2 ON p.ID = p2.ID
 		JOIN procesos2 proc2 ON p.ID = proc2.ID
@@ -173,7 +173,7 @@ func getEmplacadoFecha(c *gin.Context) {
 	query := `
 		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
 		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS,
-		       proc2.CANT_A_PROD
+		       proc2.CANT_PROD as CANT_A_PROD
 		FROM procesos p
 		JOIN EMPLACADO p2 ON p.ID = p2.ID
 		JOIN procesos2 proc2 ON p.ID = proc2.ID
