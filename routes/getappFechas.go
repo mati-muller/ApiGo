@@ -53,7 +53,7 @@ func getEncoladoFecha(c *gin.Context) {
 	query := `
 		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
 		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS,
-		       proc2.CANT_PROD
+		       proc2.CANT_A_PROD
 		FROM procesos p
 		JOIN REPORTES.dbo.ENCOLADO p2 ON p.ID = p2.ID
 		JOIN procesos2 proc2 ON p.ID = proc2.ID
