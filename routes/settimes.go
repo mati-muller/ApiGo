@@ -2,6 +2,7 @@ package routes
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -39,12 +40,12 @@ func SetupSetupTimesRoutes(r *gin.Engine) {
 	// POST endpoint to save setup time
 	r.POST("/app/setup-time", func(c *gin.Context) {
 		var payload struct {
-			IDProceso     int     `json:"id_proceso"`
-			NVNumero      string  `json:"nv_numero"`
-			Producto      string  `json:"producto"`
-			Proceso       string  `json:"proceso"`
-			TiempoMinutos float64 `json:"tiempo_minutos"`
-			Usuario       string  `json:"usuario"`
+			IDProceso     int         `json:"id_proceso"`
+			NVNumero      interface{} `json:"nv_numero"` // Aceptar número o string
+			Producto      string      `json:"producto"`
+			Proceso       string      `json:"proceso"`
+			TiempoMinutos float64     `json:"tiempo_minutos"`
+			Usuario       string      `json:"usuario"`
 		}
 
 		if err := c.ShouldBindJSON(&payload); err != nil {
@@ -54,6 +55,19 @@ func SetupSetupTimesRoutes(r *gin.Engine) {
 				"details": err.Error(),
 			})
 			return
+		}
+
+		// Convertir NVNumero a string si es necesario
+		nvNumeroStr := ""
+		switch v := payload.NVNumero.(type) {
+		case string:
+			nvNumeroStr = v
+		case float64:
+			nvNumeroStr = fmt.Sprintf("%.0f", v) // Convertir número a string sin decimales
+		case int:
+			nvNumeroStr = fmt.Sprintf("%d", v)
+		default:
+			nvNumeroStr = fmt.Sprintf("%v", v)
 		}
 
 		// Validate required fields
@@ -69,7 +83,7 @@ func SetupSetupTimesRoutes(r *gin.Engine) {
 			`INSERT INTO dbo.SETUP_TIMES (ID_PROCESO, NVNUMERO, PRODUCTO, PROCESO, TIEMPO_MINUTOS, USUARIO, FECHA) 
 			 VALUES (@IDProceso, @NVNumero, @Producto, @Proceso, @TiempoMinutos, @Usuario, GETDATE())`,
 			sql.Named("IDProceso", payload.IDProceso),
-			sql.Named("NVNumero", payload.NVNumero),
+			sql.Named("NVNumero", nvNumeroStr),
 			sql.Named("Producto", payload.Producto),
 			sql.Named("Proceso", payload.Proceso),
 			sql.Named("TiempoMinutos", payload.TiempoMinutos),
