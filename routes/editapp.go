@@ -57,6 +57,12 @@ func editTroqueladoapp(c *gin.Context) {
 		return
 	}
 
+	// Si no hay placas, solo actualizar CANT_A_FABRICAR y retornar OK
+	if len(req.Placas) == 0 {
+		c.JSON(http.StatusOK, gin.H{"message": "Process updated (sin placas)"})
+		return
+	}
+
 	// Leer el valor actual de CANTIDAD_PLACAS para el ID recibido
 	var cantidadPlacasJSON sql.NullString
 	err = db.QueryRow("SELECT CANTIDAD_PLACAS FROM TROQUELADO WHERE ID = @id", sql.Named("id", req.ID)).Scan(&cantidadPlacasJSON)
@@ -65,9 +71,9 @@ func editTroqueladoapp(c *gin.Context) {
 		return
 	}
 
-	// Si es NULL, usar array vacío
+	// Si es NULL o vacío, usar array vacío
 	jsonStr := "[]"
-	if cantidadPlacasJSON.Valid {
+	if cantidadPlacasJSON.Valid && cantidadPlacasJSON.String != "" {
 		jsonStr = cantidadPlacasJSON.String
 	}
 
@@ -135,6 +141,12 @@ func editTroquelado2app(c *gin.Context) {
 		return
 	}
 
+	// Si no hay placas, solo actualizar CANT_A_FABRICAR y retornar OK
+	if len(req.Placas) == 0 {
+		c.JSON(http.StatusOK, gin.H{"message": "Process updated (sin placas)"})
+		return
+	}
+
 	// Leer el valor actual de CANTIDAD_PLACAS para el ID recibido
 	var cantidadPlacasJSON sql.NullString
 	err = db.QueryRow("SELECT CANTIDAD_PLACAS FROM TROQUELADO2 WHERE ID = @id", sql.Named("id", req.ID)).Scan(&cantidadPlacasJSON)
@@ -143,9 +155,9 @@ func editTroquelado2app(c *gin.Context) {
 		return
 	}
 
-	// Si es NULL, usar array vacío
+	// Si es NULL o vacío, usar array vacío
 	jsonStr := "[]"
-	if cantidadPlacasJSON.Valid {
+	if cantidadPlacasJSON.Valid && cantidadPlacasJSON.String != "" {
 		jsonStr = cantidadPlacasJSON.String
 	}
 
@@ -209,6 +221,12 @@ func editEmplacadoapp(c *gin.Context) {
 		return
 	}
 
+	// Si no hay placas, solo actualizar CANT_A_FABRICAR y retornar OK
+	if len(req.Placas) == 0 {
+		c.JSON(http.StatusOK, gin.H{"message": "Process updated (sin placas)"})
+		return
+	}
+
 	// Leer el valor actual de CANTIDAD_PLACAS para el ID recibido
 	var cantidadPlacasJSON sql.NullString
 	err = db.QueryRow("SELECT CANTIDAD_PLACAS FROM EMPLACADO WHERE ID = @id", sql.Named("id", req.ID)).Scan(&cantidadPlacasJSON)
@@ -217,9 +235,9 @@ func editEmplacadoapp(c *gin.Context) {
 		return
 	}
 
-	// Si es NULL, usar array vacío
+	// Si es NULL o vacío, usar array vacío
 	jsonStr := "[]"
-	if cantidadPlacasJSON.Valid {
+	if cantidadPlacasJSON.Valid && cantidadPlacasJSON.String != "" {
 		jsonStr = cantidadPlacasJSON.String
 	}
 
@@ -288,6 +306,12 @@ func editTrozadoapp(c *gin.Context) {
 		return
 	}
 
+	// Si no hay placas, solo actualizar CANT_A_FABRICAR y retornar OK
+	if len(req.Placas) == 0 {
+		c.JSON(http.StatusOK, gin.H{"message": "Process updated (sin placas)"})
+		return
+	}
+
 	// Leer el valor actual de CANTIDAD_PLACAS para el ID recibido
 	var cantidadPlacasJSON sql.NullString
 	err = db.QueryRow("SELECT CANTIDAD_PLACAS FROM TROZADO WHERE ID = @id", sql.Named("id", req.ID)).Scan(&cantidadPlacasJSON)
@@ -296,9 +320,9 @@ func editTrozadoapp(c *gin.Context) {
 		return
 	}
 
-	// Si es NULL, usar array vacío
+	// Si es NULL o vacío, usar array vacío
 	jsonStr := "[]"
-	if cantidadPlacasJSON.Valid {
+	if cantidadPlacasJSON.Valid && cantidadPlacasJSON.String != "" {
 		jsonStr = cantidadPlacasJSON.String
 	}
 
@@ -367,6 +391,12 @@ func editEncoladoapp(c *gin.Context) {
 		return
 	}
 
+	// Si no hay placas, solo actualizar CANT_A_FABRICAR y retornar OK
+	if len(req.Placas) == 0 {
+		c.JSON(http.StatusOK, gin.H{"message": "Process updated (sin placas)"})
+		return
+	}
+
 	// Leer el valor actual de CANTIDAD_PLACAS para el ID recibido
 	var cantidadPlacasJSON sql.NullString
 	err = db.QueryRow("SELECT CANTIDAD_PLACAS FROM ENCOLADO WHERE ID = @id", sql.Named("id", req.ID)).Scan(&cantidadPlacasJSON)
@@ -375,9 +405,9 @@ func editEncoladoapp(c *gin.Context) {
 		return
 	}
 
-	// Si es NULL, usar array vacío
+	// Si es NULL o vacío, usar array vacío
 	jsonStr := "[]"
-	if cantidadPlacasJSON.Valid {
+	if cantidadPlacasJSON.Valid && cantidadPlacasJSON.String != "" {
 		jsonStr = cantidadPlacasJSON.String
 	}
 
@@ -450,6 +480,12 @@ func editEncoladoapp2(c *gin.Context) {
 		return
 	}
 
+	// Si no hay placas, solo actualizar CANT_A_FABRICAR y retornar OK
+	if len(req.Placas) == 0 {
+		c.JSON(http.StatusOK, gin.H{"message": "Process updated (sin placas)"})
+		return
+	}
+
 	// Leer el valor actual de CANTIDAD_PLACAS para el ID recibido
 	var cantidadPlacasJSON sql.NullString
 	err = db.QueryRow("SELECT CANTIDAD_PLACAS FROM ENCOLADO2 WHERE ID = @id", sql.Named("id", req.ID)).Scan(&cantidadPlacasJSON)
@@ -459,9 +495,9 @@ func editEncoladoapp2(c *gin.Context) {
 		return
 	}
 
-	// Si es NULL, usar array vacío
+	// Si es NULL o vacío, usar array vacío
 	jsonStr := "[]"
-	if cantidadPlacasJSON.Valid {
+	if cantidadPlacasJSON.Valid && cantidadPlacasJSON.String != "" {
 		jsonStr = cantidadPlacasJSON.String
 	}
 
@@ -533,6 +569,12 @@ func editPegadoapp(c *gin.Context) {
 		return
 	}
 
+	// Si no hay placas, solo actualizar CANT_A_FABRICAR y retornar OK
+	if len(req.Placas) == 0 {
+		c.JSON(http.StatusOK, gin.H{"message": "Process updated (sin placas)"})
+		return
+	}
+
 	// Leer el valor actual de CANTIDAD_PLACAS para el ID recibido
 	var cantidadPlacasJSON sql.NullString
 	err = db.QueryRow("SELECT CANTIDAD_PLACAS FROM PEGADO WHERE ID = @id", sql.Named("id", req.ID)).Scan(&cantidadPlacasJSON)
@@ -541,9 +583,9 @@ func editPegadoapp(c *gin.Context) {
 		return
 	}
 
-	// Si es NULL, usar array vacío
+	// Si es NULL o vacío, usar array vacío
 	jsonStr := "[]"
-	if cantidadPlacasJSON.Valid {
+	if cantidadPlacasJSON.Valid && cantidadPlacasJSON.String != "" {
 		jsonStr = cantidadPlacasJSON.String
 	}
 
@@ -612,6 +654,12 @@ func editMultipleapp(c *gin.Context) {
 		return
 	}
 
+	// Si no hay placas, solo actualizar CANT_A_FABRICAR y retornar OK
+	if len(req.Placas) == 0 {
+		c.JSON(http.StatusOK, gin.H{"message": "Process updated (sin placas)"})
+		return
+	}
+
 	// Leer el valor actual de CANTIDAD_PLACAS para el ID recibido
 	var cantidadPlacasJSON sql.NullString
 	err = db.QueryRow("SELECT CANTIDAD_PLACAS FROM MULTIPLE WHERE ID = @id", sql.Named("id", req.ID)).Scan(&cantidadPlacasJSON)
@@ -620,9 +668,9 @@ func editMultipleapp(c *gin.Context) {
 		return
 	}
 
-	// Si es NULL, usar array vacío
+	// Si es NULL o vacío, usar array vacío
 	jsonStr := "[]"
-	if cantidadPlacasJSON.Valid {
+	if cantidadPlacasJSON.Valid && cantidadPlacasJSON.String != "" {
 		jsonStr = cantidadPlacasJSON.String
 	}
 
@@ -691,6 +739,12 @@ func editMultipleapp2(c *gin.Context) {
 		return
 	}
 
+	// Si no hay placas, solo actualizar CANT_A_FABRICAR y retornar OK
+	if len(req.Placas) == 0 {
+		c.JSON(http.StatusOK, gin.H{"message": "Process updated (sin placas)"})
+		return
+	}
+
 	// Leer el valor actual de CANTIDAD_PLACAS para el ID recibido
 	var cantidadPlacasJSON sql.NullString
 	err = db.QueryRow("SELECT CANTIDAD_PLACAS FROM MULTIPLE2 WHERE ID = @id", sql.Named("id", req.ID)).Scan(&cantidadPlacasJSON)
@@ -699,9 +753,9 @@ func editMultipleapp2(c *gin.Context) {
 		return
 	}
 
-	// Si es NULL, usar array vacío
+	// Si es NULL o vacío, usar array vacío
 	jsonStr := "[]"
-	if cantidadPlacasJSON.Valid {
+	if cantidadPlacasJSON.Valid && cantidadPlacasJSON.String != "" {
 		jsonStr = cantidadPlacasJSON.String
 	}
 
@@ -770,6 +824,12 @@ func editPlizadoapp(c *gin.Context) {
 		return
 	}
 
+	// Si no hay placas, solo actualizar CANT_A_FABRICAR y retornar OK
+	if len(req.Placas) == 0 {
+		c.JSON(http.StatusOK, gin.H{"message": "Process updated (sin placas)"})
+		return
+	}
+
 	// Leer el valor actual de CANTIDAD_PLACAS para el ID recibido
 	var cantidadPlacasJSON sql.NullString
 	err = db.QueryRow("SELECT CANTIDAD_PLACAS FROM PLIZADO WHERE ID = @id", sql.Named("id", req.ID)).Scan(&cantidadPlacasJSON)
@@ -778,9 +838,9 @@ func editPlizadoapp(c *gin.Context) {
 		return
 	}
 
-	// Si es NULL, usar array vacío
+	// Si es NULL o vacío, usar array vacío
 	jsonStr := "[]"
-	if cantidadPlacasJSON.Valid {
+	if cantidadPlacasJSON.Valid && cantidadPlacasJSON.String != "" {
 		jsonStr = cantidadPlacasJSON.String
 	}
 
@@ -849,17 +909,23 @@ func editImpresionapp(c *gin.Context) {
 		return
 	}
 
+	// Si no hay placas, solo actualizar CANT_A_FABRICAR y retornar OK
+	if len(req.Placas) == 0 {
+		c.JSON(http.StatusOK, gin.H{"message": "Process updated (sin placas)"})
+		return
+	}
+
 	// Leer el valor actual de CANTIDAD_PLACAS para el ID recibido
 	var cantidadPlacasJSON sql.NullString
-	err = db.QueryRow("SELECT CANTIDAD_PLACAS FROM PLIZADO WHERE ID = @id", sql.Named("id", req.ID)).Scan(&cantidadPlacasJSON)
+	err = db.QueryRow("SELECT CANTIDAD_PLACAS FROM IMPRESION WHERE ID = @id", sql.Named("id", req.ID)).Scan(&cantidadPlacasJSON)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo leer CANTIDAD_PLACAS"})
 		return
 	}
 
-	// Si es NULL, usar array vacío
+	// Si es NULL o vacío, usar array vacío
 	jsonStr := "[]"
-	if cantidadPlacasJSON.Valid {
+	if cantidadPlacasJSON.Valid && cantidadPlacasJSON.String != "" {
 		jsonStr = cantidadPlacasJSON.String
 	}
 
@@ -889,7 +955,7 @@ func editImpresionapp(c *gin.Context) {
 		return
 	}
 
-	_, err = db.Exec("UPDATE PLIZADO SET CANTIDAD_PLACAS = @nuevo WHERE ID = @id", sql.Named("nuevo", string(nuevaCantidadPlacasJSON)), sql.Named("id", req.ID))
+	_, err = db.Exec("UPDATE IMPRESION SET CANTIDAD_PLACAS = @nuevo WHERE ID = @id", sql.Named("nuevo", string(nuevaCantidadPlacasJSON)), sql.Named("id", req.ID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudo actualizar CANTIDAD_PLACAS"})
 		return
@@ -928,6 +994,12 @@ func editCaladoapp(c *gin.Context) {
 		return
 	}
 
+	// Si no hay placas, solo actualizar CANT_A_FABRICAR y retornar OK
+	if len(req.Placas) == 0 {
+		c.JSON(http.StatusOK, gin.H{"message": "Process updated (sin placas)"})
+		return
+	}
+
 	// Leer el valor actual de CANTIDAD_PLACAS para el ID recibido
 	var cantidadPlacasJSON sql.NullString
 	err = db.QueryRow("SELECT CANTIDAD_PLACAS FROM CALADO WHERE ID = @id", sql.Named("id", req.ID)).Scan(&cantidadPlacasJSON)
@@ -936,9 +1008,9 @@ func editCaladoapp(c *gin.Context) {
 		return
 	}
 
-	// Si es NULL, usar array vacío
+	// Si es NULL o vacío, usar array vacío
 	jsonStr := "[]"
-	if cantidadPlacasJSON.Valid {
+	if cantidadPlacasJSON.Valid && cantidadPlacasJSON.String != "" {
 		jsonStr = cantidadPlacasJSON.String
 	}
 
