@@ -17,6 +17,7 @@ import (
 func Reportes(r *gin.Engine) {
 	r.POST("/reportes/update", updateHandler)
 	r.GET(("/reportes/historial"), getHistorialHandler)
+	r.POST("/reportes/unlock-process", unlockProcess)
 }
 
 func updateHandler(c *gin.Context) {
@@ -539,3 +540,79 @@ func getHistorialHandler(c *gin.Context) {
 
 	c.JSON(http.StatusOK, historial)
 }
+
+// unlockProcess libera el bloqueo de un proceso después de completarlo
+func unlockProcess(c *gin.Context) {
+	var reqBody struct {
+		TableName string `json:"tableName" binding:"required"`
+		ID        int    `json:"id" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&reqBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request", "details": err.Error()})
+		return
+	}
+
+	// Validar nombre de tabla
+	validTables := []string{"TROQUELADO", "TROQUELADO2", "ENCOLADO", "ENCOLADO2", "MULTIPLE", "MULTIPLE2", "PEGADO", "TROZADO", "IMPRESION", "CALADO", "PLIZADO", "EMPLACADO"}
+	isValid := false
+	tableName := strings.ToUpper(reqBody.TableName)
+	for _, valid := range validTables {
+		if tableName == valid {
+			isValid = true
+			break
+		}
+	}
+
+	if !isValid {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid table name"})
+		return
+	}
+
+	db, err := sql.Open("sqlserver", "Server="+os.Getenv("SQL_SERVER")+"\\"+os.Getenv("SQL_INSTANCE")+";Database="+os.Getenv("SQL_DATABASE2")+";User Id="+os.Getenv("SQL_USER")+";Password="+os.Getenv("SQL_PASSWORD")+";Encrypt=disable")
+	if err != nil {
+		log.Printf("Failed to connect to database: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database connection error"})
+		return
+	}
+	defer db.Close()
+
+	// Verificar si la columna existe
+	var columnExists int
+	checkColumnQuery := fmt.Sprintf(`
+		SELECT COUNT(*)
+		FROM INFORMATION_SCHEMA.COLUMNS
+		WHERE TABLE_NAME = '%s' AND COLUMN_NAME = 'PROCESO_BLOQUEADO'
+	`, tableName)
+
+	err = db.QueryRow(checkColumnQuery).Scan(&columnExists)
+	if err != nil {
+		log.Printf("Error checking column existence: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error checking column"})
+		return
+	}
+
+	// Si la columna no existe, no hay nada que desbloquear
+	if columnExists == 0 {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "Proceso liberado (columna no existe)",
+		})
+		return
+	}
+
+	// Desbloquear el proceso
+	updateQuery := fmt.Sprintf("UPDATE %s SET PROCESO_BLOQUEADO = 0 WHERE ID = @id", tableName)
+	_, err = db.Exec(updateQuery, sql.Named("id", reqBody.ID))
+	if err != nil {
+		log.Printf("Error unlocking process: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error unlocking process"})
+		return
+	}
+
+	log.Printf("Process unlocked: table=%s, id=%d", tableName, reqBody.ID)
+	c.JSON(http.StatusOK, gin.H{
+		"message":   "Proceso liberado exitosamente",
+		"bloqueado": false,
+	})
+}
+

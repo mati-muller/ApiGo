@@ -1,8 +1,12 @@
 package routes
 
 import (
+	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"strings"
 
 	_ "github.com/denisenkom/go-mssqldb"
 	"github.com/gin-gonic/gin"
@@ -22,6 +26,9 @@ func SetupProcAppRoutes(r *gin.Engine) {
 	r.GET("/app/plizado", getPlizado)
 	r.GET("/app/emplacado", getEmplacado)
 
+	// Endpoints de bloqueo de procesos
+	r.POST("/app/lock-process", lockProcess)
+	r.GET("/app/check-lock/:tableName/:id", checkProcessLock)
 }
 
 func queryDatabase(c *gin.Context, query string) {
@@ -186,11 +193,189 @@ func getPlizado(c *gin.Context) {
 }
 func getEmplacado(c *gin.Context) {
 	query := `
-		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD, 
+		SELECT p.ID, p.NVNUMERO, p.NOMAUX, p.FECHA_ENTREGA, p.PROCESO, p.DETPROD, p.CANTPROD,
 		       p2.CANT_A_FABRICAR, p2.PLACAS_A_USAR, p2.CANTIDAD_PLACAS
 		FROM procesos p
 		JOIN EMPLACADO p2 ON p.ID = p2.ID
 		ORDER BY p2.PRIORITY
 	`
 	queryDatabase(c, query)
+}
+
+// checkProcessLock verifica si un proceso está bloqueado
+func checkProcessLock(c *gin.Context) {
+	tableName := c.Param("tableName")
+	id := c.Param("id")
+
+	// Validar nombre de tabla para prevenir SQL injection
+	validTables := []string{"TROQUELADO", "TROQUELADO2", "ENCOLADO", "ENCOLADO2", "MULTIPLE", "MULTIPLE2", "PEGADO", "TROZADO", "IMPRESION", "CALADO", "PLIZADO", "EMPLACADO"}
+	isValid := false
+	for _, valid := range validTables {
+		if strings.EqualFold(tableName, valid) {
+			tableName = strings.ToUpper(tableName)
+			isValid = true
+			break
+		}
+	}
+
+	if !isValid {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid table name"})
+		return
+	}
+
+	db, err := sql.Open("sqlserver", "Server="+os.Getenv("SQL_SERVER")+"\\"+os.Getenv("SQL_INSTANCE")+";Database="+os.Getenv("SQL_DATABASE2")+";User Id="+os.Getenv("SQL_USER")+";Password="+os.Getenv("SQL_PASSWORD")+";Encrypt=disable")
+	if err != nil {
+		log.Printf("Failed to connect to database: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database connection error"})
+		return
+	}
+	defer db.Close()
+
+	// Verificar si la columna PROCESO_BLOQUEADO existe
+	var columnExists bool
+	checkColumnQuery := fmt.Sprintf(`
+		SELECT COUNT(*)
+		FROM INFORMATION_SCHEMA.COLUMNS
+		WHERE TABLE_NAME = '%s' AND COLUMN_NAME = 'PROCESO_BLOQUEADO'
+	`, tableName)
+
+	err = db.QueryRow(checkColumnQuery).Scan(&columnExists)
+	if err != nil {
+		log.Printf("Error checking column existence: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error checking column"})
+		return
+	}
+
+	// Si la columna no existe, asumir que no está bloqueado
+	if !columnExists {
+		c.JSON(http.StatusOK, gin.H{
+			"bloqueado": false,
+			"mensaje":   "Proceso disponible",
+		})
+		return
+	}
+
+	// Verificar el estado del bloqueo
+	var bloqueado sql.NullBool
+	query := fmt.Sprintf("SELECT PROCESO_BLOQUEADO FROM %s WHERE ID = @id", tableName)
+	err = db.QueryRow(query, sql.Named("id", id)).Scan(&bloqueado)
+
+	if err == sql.ErrNoRows {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Process not found"})
+		return
+	} else if err != nil {
+		log.Printf("Error checking lock status: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error checking lock"})
+		return
+	}
+
+	// Si es NULL o false, no está bloqueado
+	isBloqueado := bloqueado.Valid && bloqueado.Bool
+
+	c.JSON(http.StatusOK, gin.H{
+		"bloqueado": isBloqueado,
+		"mensaje":   map[bool]string{true: "Proceso bloqueado por otro dispositivo", false: "Proceso disponible"}[isBloqueado],
+	})
+}
+
+// lockProcess bloquea un proceso para evitar que se inicie desde otro dispositivo
+func lockProcess(c *gin.Context) {
+	var reqBody struct {
+		TableName string `json:"tableName" binding:"required"`
+		ID        int    `json:"id" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&reqBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request", "details": err.Error()})
+		return
+	}
+
+	// Validar nombre de tabla
+	validTables := []string{"TROQUELADO", "TROQUELADO2", "ENCOLADO", "ENCOLADO2", "MULTIPLE", "MULTIPLE2", "PEGADO", "TROZADO", "IMPRESION", "CALADO", "PLIZADO", "EMPLACADO"}
+	isValid := false
+	tableName := strings.ToUpper(reqBody.TableName)
+	for _, valid := range validTables {
+		if tableName == valid {
+			isValid = true
+			break
+		}
+	}
+
+	if !isValid {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid table name"})
+		return
+	}
+
+	db, err := sql.Open("sqlserver", "Server="+os.Getenv("SQL_SERVER")+"\\"+os.Getenv("SQL_INSTANCE")+";Database="+os.Getenv("SQL_DATABASE2")+";User Id="+os.Getenv("SQL_USER")+";Password="+os.Getenv("SQL_PASSWORD")+";Encrypt=disable")
+	if err != nil {
+		log.Printf("Failed to connect to database: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database connection error"})
+		return
+	}
+	defer db.Close()
+
+	// Verificar si la columna existe, si no, crearla
+	var columnExists int
+	checkColumnQuery := fmt.Sprintf(`
+		SELECT COUNT(*)
+		FROM INFORMATION_SCHEMA.COLUMNS
+		WHERE TABLE_NAME = '%s' AND COLUMN_NAME = 'PROCESO_BLOQUEADO'
+	`, tableName)
+
+	err = db.QueryRow(checkColumnQuery).Scan(&columnExists)
+	if err != nil {
+		log.Printf("Error checking column existence: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error checking column"})
+		return
+	}
+
+	// Si la columna no existe, crearla con ALTER TABLE
+	if columnExists == 0 {
+		alterQuery := fmt.Sprintf("ALTER TABLE %s ADD PROCESO_BLOQUEADO BIT DEFAULT 0", tableName)
+		_, err = db.Exec(alterQuery)
+		if err != nil {
+			log.Printf("Error creating column: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating lock column"})
+			return
+		}
+		log.Printf("Column PROCESO_BLOQUEADO created in table %s", tableName)
+	}
+
+	// Verificar si ya está bloqueado
+	var bloqueado sql.NullBool
+	checkQuery := fmt.Sprintf("SELECT PROCESO_BLOQUEADO FROM %s WHERE ID = @id", tableName)
+	err = db.QueryRow(checkQuery, sql.Named("id", reqBody.ID)).Scan(&bloqueado)
+
+	if err == sql.ErrNoRows {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Process not found"})
+		return
+	} else if err != nil {
+		log.Printf("Error checking lock: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error checking lock"})
+		return
+	}
+
+	// Si ya está bloqueado, retornar error
+	if bloqueado.Valid && bloqueado.Bool {
+		c.JSON(http.StatusConflict, gin.H{
+			"error":     "Proceso ya bloqueado",
+			"mensaje":   "Este proceso ya está siendo usado en otro dispositivo",
+			"bloqueado": true,
+		})
+		return
+	}
+
+	// Bloquear el proceso
+	updateQuery := fmt.Sprintf("UPDATE %s SET PROCESO_BLOQUEADO = 1 WHERE ID = @id", tableName)
+	_, err = db.Exec(updateQuery, sql.Named("id", reqBody.ID))
+	if err != nil {
+		log.Printf("Error locking process: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error locking process"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":   "Proceso bloqueado exitosamente",
+		"bloqueado": true,
+	})
 }

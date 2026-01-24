@@ -71,16 +71,26 @@ func SetupSetupTimesRoutes(r *gin.Engine) {
 		}
 
 		// Validate required fields
-		if payload.IDProceso == 0 || payload.TiempoMinutos == 0 {
+		if payload.IDProceso == 0 {
 			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "ID_PROCESO and TIEMPO_MINUTOS are required and must be greater than 0",
+				"error": "ID_PROCESO es requerido",
+			})
+			return
+		}
+
+		// Validar que el tiempo de seteo sea mayor a 0
+		if payload.TiempoMinutos == 0 {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":     "No se envió el tiempo de seteo",
+				"message":   "Por favor, reintente enviando el tiempo de seteo en minutos",
+				"reintentar": true,
 			})
 			return
 		}
 
 		// Insert into SETUP_TIMES table
 		_, err := db.Exec(
-			`INSERT INTO dbo.SETUP_TIMES (ID_PROCESO, NVNUMERO, PRODUCTO, PROCESO, TIEMPO_MINUTOS, USUARIO, FECHA) 
+			`INSERT INTO dbo.SETUP_TIMES (ID_PROCESO, NVNUMERO, PRODUCTO, PROCESO, TIEMPO_MINUTOS, USUARIO, FECHA)
 			 VALUES (@IDProceso, @NVNumero, @Producto, @Proceso, @TiempoMinutos, @Usuario, GETDATE())`,
 			sql.Named("IDProceso", payload.IDProceso),
 			sql.Named("NVNumero", nvNumeroStr),
@@ -93,7 +103,9 @@ func SetupSetupTimesRoutes(r *gin.Engine) {
 		if err != nil {
 			log.Printf("Failed to insert into SETUP_TIMES: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "Failed to save setup time",
+				"error":      "Error al guardar el tiempo de seteo",
+				"message":    "No se pudo completar la operación. Por favor, haga clic en Reintentar.",
+				"reintentar": true,
 			})
 			return
 		}

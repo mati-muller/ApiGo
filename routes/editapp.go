@@ -53,7 +53,11 @@ func editTroqueladoapp(c *gin.Context) {
 	query := `UPDATE TROQUELADO SET CANT_A_FABRICAR = CASE WHEN CANT_A_FABRICAR - @cantidad < 0 THEN 0 ELSE CANT_A_FABRICAR - @cantidad END WHERE ID = @id`
 	_, err = db.Exec(query, sql.Named("cantidad", req.Cantidad), sql.Named("id", req.ID))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update process"})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":      "No se pudo actualizar el proceso",
+			"message":    "Error al guardar los datos. Por favor, haga clic en Reintentar.",
+			"reintentar": true,
+		})
 		return
 	}
 
