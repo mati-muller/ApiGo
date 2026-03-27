@@ -478,7 +478,7 @@ func getHistorialHandler(c *gin.Context) {
 		var (
 			id, idProceso, cantidad, numeroPersonas, stockCant, nvcant, nvnumero                                int
 			placa, placasUsadas, placasBuenas, placasMalas, stock, user, fechaEntrega, nomaux, detprod, proceso string
-			tiempoTotal                                                                                         float64
+			tiempoTotal                                                                                         sql.NullFloat64
 			despunte                                                                                            bool
 			fecha                                                                                               sql.NullString
 		)
@@ -497,7 +497,6 @@ func getHistorialHandler(c *gin.Context) {
 		json.Unmarshal([]byte(placasUsadas), &placasUsadasArray)
 		json.Unmarshal([]byte(placasBuenas), &placasBuenasArray)
 		json.Unmarshal([]byte(placasMalas), &placasMalasArray)
-
 		historial = append(historial, map[string]interface{}{
 			"ID":              id,
 			"ID_PROCESO":      idProceso,
@@ -506,7 +505,7 @@ func getHistorialHandler(c *gin.Context) {
 			"PLACAS_USADAS":   placasUsadasArray,
 			"PLACAS_BUENAS":   placasBuenasArray,
 			"PLACAS_MALAS":    placasMalasArray,
-			"TIEMPO_TOTAL":    tiempoTotal,
+			"TIEMPO_TOTAL":    nil,
 			"NUMERO_PERSONAS": numeroPersonas,
 			"STOCK":           stock,
 			"USER":            user,
@@ -520,6 +519,9 @@ func getHistorialHandler(c *gin.Context) {
 			"PROCESO":         proceso,
 			"FECHA":           nil,
 		})
+		if tiempoTotal.Valid {
+			historial[len(historial)-1]["TIEMPO_TOTAL"] = tiempoTotal.Float64
+		}
 		if fecha.Valid {
 			historial[len(historial)-1]["FECHA"] = fecha.String
 		}
