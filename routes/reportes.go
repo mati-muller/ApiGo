@@ -439,7 +439,6 @@ func getHistorialHandler(c *gin.Context) {
 		return
 	}
 	defer db.Close()
-
 	// Get query parameters for date filtering
 	fechaInicio := c.Query("fecha_inicio")
 	fechaFin := c.Query("fecha_fin")
@@ -451,22 +450,17 @@ func getHistorialHandler(c *gin.Context) {
                p.NVNUMERO, p.FECHA_ENTREGA, p.NOMAUX, p.NVCANT, p.DETPROD, p.PROCESO, h.FECHA
         FROM REPORTES.dbo.HISTORIAL h
         JOIN REPORTES.dbo.procesos p ON h.ID_PROCESO = p.ID`
-
 	var args []interface{}
-	var whereClause []string
 
-	if fechaInicio != "" {
-		whereClause = append(whereClause, "p.FECHA_ENTREGA >= ?")
-		args = append(args, fechaInicio)
-	}
-
-	if fechaFin != "" {
-		whereClause = append(whereClause, "p.FECHA_ENTREGA <= ?")
-		args = append(args, fechaFin)
-	}
-
-	if len(whereClause) > 0 {
-		query += " WHERE " + strings.Join(whereClause, " AND ")
+	if fechaInicio != "" && fechaFin != "" {
+		query += " WHERE p.FECHA_ENTREGA >= @fechaInicio AND p.FECHA_ENTREGA <= @fechaFin"
+		args = append(args, sql.Named("fechaInicio", fechaInicio), sql.Named("fechaFin", fechaFin))
+	} else if fechaInicio != "" {
+		query += " WHERE p.FECHA_ENTREGA >= @fechaInicio"
+		args = append(args, sql.Named("fechaInicio", fechaInicio))
+	} else if fechaFin != "" {
+		query += " WHERE p.FECHA_ENTREGA <= @fechaFin"
+		args = append(args, sql.Named("fechaFin", fechaFin))
 	}
 
 	// Add ordering by HISTORIAL.FECHA (created at) descending (newest first)
@@ -478,13 +472,11 @@ func getHistorialHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error querying HISTORIAL table with JOIN"})
 		return
 	}
-	defer rows.Close()
-
-	// Parse rows into a slice of maps
+	defer rows.Close() // Parse rows into a slice of maps
 	var historial []map[string]interface{}
 	for rows.Next() {
 		var (
-			id, idProceso, cantidad, numeroPersonas, stockCant, nvnumero, nvcant                                int
+			id, idProceso, cantidad, numeroPersonas, stockCant, nvcant, nvnumero                                int
 			placa, placasUsadas, placasBuenas, placasMalas, stock, user, fechaEntrega, nomaux, detprod, proceso string
 			tiempoTotal                                                                                         float64
 			despunte                                                                                            bool
@@ -492,7 +484,8 @@ func getHistorialHandler(c *gin.Context) {
 		)
 		if err := rows.Scan(&id, &idProceso, &cantidad, &placa, &placasUsadas, &placasBuenas, &placasMalas, &tiempoTotal, &numeroPersonas, &stock, &user, &stockCant, &despunte, &nvnumero, &fechaEntrega, &nomaux, &nvcant, &detprod, &proceso, &fecha); err != nil {
 			log.Println("Error scanning row:", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error scanning row"})
+			log.Println("Full error details:", err.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error scanning row", "details": err.Error()})
 			return
 		}
 
@@ -615,4 +608,3 @@ func unlockProcess(c *gin.Context) {
 		"bloqueado": false,
 	})
 }
-
