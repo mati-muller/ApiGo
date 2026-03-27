@@ -465,19 +465,20 @@ func getHistorialHandler(c *gin.Context) {
 
 	// Add ordering by HISTORIAL.FECHA (created at) descending (newest first)
 	query += " ORDER BY h.FECHA DESC"
-
 	rows, err := db.Query(query, args...)
 	if err != nil {
 		log.Println("Error querying HISTORIAL table with JOIN:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error querying HISTORIAL table with JOIN"})
 		return
 	}
-	defer rows.Close() // Parse rows into a slice of maps
+	defer rows.Close()
+	// Parse rows into a slice of maps
 	var historial []map[string]interface{}
 	for rows.Next() {
 		var (
 			id, idProceso, cantidad, numeroPersonas, stockCant, nvcant, nvnumero                                int
-			placa, placasUsadas, placasBuenas, placasMalas, stock, user, fechaEntrega, nomaux, detprod, proceso string
+			placa, placasUsadas, placasBuenas, placasMalas, user, fechaEntrega, nomaux, detprod, proceso       string
+			stock                                                                                               sql.NullString
 			tiempoTotal                                                                                         sql.NullFloat64
 			despunte                                                                                            bool
 			fecha                                                                                               sql.NullString
