@@ -489,7 +489,6 @@ func getHistorialHandler(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error scanning row", "details": err.Error()})
 			return
 		}
-
 		// Parse JSON arrays for proper display
 		var placasArray []string
 		var placasUsadasArray, placasBuenasArray, placasMalasArray []int
@@ -497,7 +496,9 @@ func getHistorialHandler(c *gin.Context) {
 		json.Unmarshal([]byte(placa), &placasArray)
 		json.Unmarshal([]byte(placasUsadas), &placasUsadasArray)
 		json.Unmarshal([]byte(placasBuenas), &placasBuenasArray)
-		json.Unmarshal([]byte(placasMalas), &placasMalasArray)		historial = append(historial, map[string]interface{}{
+		json.Unmarshal([]byte(placasMalas), &placasMalasArray)
+
+		historial = append(historial, map[string]interface{}{
 			"ID":              id,
 			"ID_PROCESO":      idProceso,
 			"CANTIDAD":        cantidad,
