@@ -462,9 +462,9 @@ func getHistorialHandler(c *gin.Context) {
 		query += " WHERE p.FECHA_ENTREGA <= @fechaFin"
 		args = append(args, sql.Named("fechaFin", fechaFin))
 	}
-
 	// Add ordering by HISTORIAL.FECHA (created at) descending (newest first)
 	query += " ORDER BY h.FECHA DESC"
+
 	rows, err := db.Query(query, args...)
 	if err != nil {
 		log.Println("Error querying HISTORIAL table with JOIN:", err)
@@ -476,12 +476,12 @@ func getHistorialHandler(c *gin.Context) {
 	var historial []map[string]interface{}
 	for rows.Next() {
 		var (
-			id, idProceso, cantidad, numeroPersonas, stockCant, nvcant, nvnumero                                int
-			placa, placasUsadas, placasBuenas, placasMalas, user, fechaEntrega, nomaux, detprod, proceso       string
-			stock                                                                                               sql.NullString
-			tiempoTotal                                                                                         sql.NullFloat64
-			despunte                                                                                            bool
-			fecha                                                                                               sql.NullString
+			id, idProceso, cantidad, numeroPersonas, stockCant, nvcant, nvnumero                   int
+			placa, placasUsadas, placasBuenas, placasMalas, fechaEntrega, nomaux, detprod, proceso string
+			stock, user                                                                            sql.NullString
+			tiempoTotal                                                                            sql.NullFloat64
+			despunte                                                                               bool
+			fecha                                                                                  sql.NullString
 		)
 		if err := rows.Scan(&id, &idProceso, &cantidad, &placa, &placasUsadas, &placasBuenas, &placasMalas, &tiempoTotal, &numeroPersonas, &stock, &user, &stockCant, &despunte, &nvnumero, &fechaEntrega, &nomaux, &nvcant, &detprod, &proceso, &fecha); err != nil {
 			log.Println("Error scanning row:", err)
@@ -497,7 +497,6 @@ func getHistorialHandler(c *gin.Context) {
 		json.Unmarshal([]byte(placasUsadas), &placasUsadasArray)
 		json.Unmarshal([]byte(placasBuenas), &placasBuenasArray)
 		json.Unmarshal([]byte(placasMalas), &placasMalasArray)
-
 		historial = append(historial, map[string]interface{}{
 			"ID":              id,
 			"ID_PROCESO":      idProceso,
@@ -509,7 +508,7 @@ func getHistorialHandler(c *gin.Context) {
 			"TIEMPO_TOTAL":    nil,
 			"NUMERO_PERSONAS": numeroPersonas,
 			"STOCK":           nil,
-			"USER":            user,
+			"USER":            nil,
 			"STOCK_CANT":      stockCant,
 			"despunte":        despunte,
 			"NVNUMERO":        nvnumero,
@@ -525,6 +524,9 @@ func getHistorialHandler(c *gin.Context) {
 		}
 		if stock.Valid {
 			historial[len(historial)-1]["STOCK"] = stock.String
+		}
+		if user.Valid {
+			historial[len(historial)-1]["USER"] = user.String
 		}
 		if fecha.Valid {
 			historial[len(historial)-1]["FECHA"] = fecha.String
