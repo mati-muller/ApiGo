@@ -13,6 +13,7 @@ func SetupInventarioRoutes(r *gin.Engine) {
 	r.GET("/inventario/data", getInventarioData)
 	r.GET("/inventario/total", getInventarioTotal)
 	r.GET("/inventario/placas", getPlacasData)
+	r.GET("/inventario/all", getAllInventario)
 	r.POST("/inventario/addplaca", addPlacas)
 }
 
@@ -168,6 +169,59 @@ func addPlacas(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert data", "details": err.Error()})
 		return
 	}
-
 	c.JSON(http.StatusOK, gin.H{"message": "Data inserted successfully"})
+}
+
+func getAllInventario(c *gin.Context) {
+	// Establish database connection
+	db, err := sql.Open("sqlserver", "Server="+os.Getenv("SQL_SERVER")+"\\"+os.Getenv("SQL_INSTANCE")+";Database="+os.Getenv("SQL_DATABASE2")+";User="+os.Getenv("SQL_USER")+";Password="+os.Getenv("SQL_PASSWORD")+";Encrypt=disable")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to connect to database"})
+		return
+	}
+	defer db.Close()
+
+	// Select all records with all columns
+	rows, err := db.Query(`
+		SELECT 
+			placa, 
+			fecha_compra, 
+			precio_pp, 
+			precio_total, 
+			cantidad, 
+			oc
+		FROM 
+			inventario
+	`)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to execute query", "details": err.Error()})
+		return
+	}
+	defer rows.Close()
+
+	// Process query results
+	var results []map[string]interface{}
+	for rows.Next() {
+		var placa string
+		var fechaCompra string
+		var precioPP float64
+		var precioTotal float64
+		var cantidad int
+		var oc string
+
+		if err := rows.Scan(&placa, &fechaCompra, &precioPP, &precioTotal, &cantidad, &oc); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to scan row"})
+			return
+		}
+		results = append(results, gin.H{
+			"placa":        placa,
+			"fecha_compra": fechaCompra,
+			"precio_pp":    precioPP,
+			"precio_total": precioTotal,
+			"cantidad":     cantidad,
+			"oc":           oc,
+		})
+	}
+
+	c.JSON(http.StatusOK, results)
 }
