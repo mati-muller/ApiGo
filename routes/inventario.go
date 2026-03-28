@@ -198,28 +198,27 @@ func getAllInventario(c *gin.Context) {
 		return
 	}
 	defer rows.Close()
-
 	// Process query results
 	var results []map[string]interface{}
 	for rows.Next() {
-		var placa string
-		var fechaCompra string
-		var precioPP float64
-		var precioTotal float64
-		var cantidad int
-		var oc string
+		var placa sql.NullString
+		var fechaCompra sql.NullString
+		var precioPP sql.NullFloat64
+		var precioTotal sql.NullFloat64
+		var cantidad sql.NullInt64
+		var oc sql.NullString
 
 		if err := rows.Scan(&placa, &fechaCompra, &precioPP, &precioTotal, &cantidad, &oc); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to scan row"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to scan row", "details": err.Error()})
 			return
 		}
 		results = append(results, gin.H{
-			"placa":        placa,
-			"fecha_compra": fechaCompra,
-			"precio_pp":    precioPP,
-			"precio_total": precioTotal,
-			"cantidad":     cantidad,
-			"oc":           oc,
+			"placa":        placa.String,
+			"fecha_compra": fechaCompra.String,
+			"precio_pp":    precioPP.Float64,
+			"precio_total": precioTotal.Float64,
+			"cantidad":     cantidad.Int64,
+			"oc":           oc.String,
 		})
 	}
 
