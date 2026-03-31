@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"net/http"
 	"os"
+	"time"
 
 	_ "github.com/denisenkom/go-mssqldb"
 	"github.com/gin-gonic/gin"
@@ -152,6 +153,10 @@ func addPlacas(c *gin.Context) {
 		return
 	}
 
+	// Get current date in Chile timezone (CLT/CLST)
+	loc, _ := time.LoadLocation("America/Santiago")
+	currentDate := time.Now().In(loc).Format("02/01/2006") // dd/mm/yyyy format
+
 	// Establish database connection
 	db, err := sql.Open("sqlserver", "Server="+os.Getenv("SQL_SERVER")+"\\"+os.Getenv("SQL_INSTANCE")+";Database="+os.Getenv("SQL_DATABASE2")+";User="+os.Getenv("SQL_USER")+";Password="+os.Getenv("SQL_PASSWORD")+";Encrypt=disable")
 	if err != nil {
@@ -163,7 +168,7 @@ func addPlacas(c *gin.Context) {
 	// Insert data into the database
 	_, err = db.Exec(
 		"INSERT INTO inventario (placa, fecha_compra, precio_pp, precio_total, cantidad, oc) VALUES (@p1, @p2, @p3, @p4, @p5, @p6)",
-		input.Placa, input.Fecha, input.PrecioPP, input.PrecioTotal, input.Cantidad, input.OC,
+		input.Placa, currentDate, input.PrecioPP, input.PrecioTotal, input.Cantidad, input.OC,
 	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert data", "details": err.Error()})
