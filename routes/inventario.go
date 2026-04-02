@@ -406,16 +406,14 @@ func exportInventarioCSV(c *gin.Context) {
 		return
 	}
 	defer db.Close()
-
-	// Query to get inventory grouped by placa with calculated totals
+	// Query to get inventory grouped by placa with calculated totals (handling NULL values)
 	rows, err := db.Query(`
 		SELECT 
 			placa,
-			SUM(cantidad) AS cantidad_total,
-			MAX(precio_pp) AS precio_pp,
-			SUM(CAST(cantidad AS float) * precio_pp) AS valor_total
+			SUM(ISNULL(cantidad, 0)) AS cantidad_total,
+			MAX(ISNULL(precio_pp, 0)) AS precio_pp,
+			SUM(ISNULL(CAST(cantidad AS float), 0) * ISNULL(precio_pp, 0)) AS valor_total
 		FROM inventario
-		WHERE cantidad > 0
 		GROUP BY placa
 		ORDER BY placa
 	`)
