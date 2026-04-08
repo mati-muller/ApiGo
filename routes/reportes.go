@@ -476,12 +476,13 @@ func getHistorialHandler(c *gin.Context) {
 	var historial []map[string]interface{}
 	for rows.Next() {
 		var (
-			id, idProceso, cantidad, numeroPersonas, stockCant, nvcant, nvnumero                   int
-			placa, placasUsadas, placasBuenas, placasMalas, fechaEntrega, nomaux, detprod, proceso string
-			stock, user                                                                            sql.NullString
-			tiempoTotal                                                                            sql.NullFloat64
-			despunte                                                                               bool
-			fecha                                                                                  sql.NullString
+			id, idProceso, cantidad, numeroPersonas, stockCant, nvcant, nvnumero int
+			placa, placasUsadas, placasBuenas, placasMalas                       sql.NullString
+			fechaEntrega, nomaux, detprod, proceso                               string
+			stock, user                                                         sql.NullString
+			tiempoTotal                                                         sql.NullFloat64
+			despunte                                                            bool
+			fecha                                                               sql.NullString
 		)
 		if err := rows.Scan(&id, &idProceso, &cantidad, &placa, &placasUsadas, &placasBuenas, &placasMalas, &tiempoTotal, &numeroPersonas, &stock, &user, &stockCant, &despunte, &nvnumero, &fechaEntrega, &nomaux, &nvcant, &detprod, &proceso, &fecha); err != nil {
 			log.Println("Error scanning row:", err)
@@ -493,10 +494,27 @@ func getHistorialHandler(c *gin.Context) {
 		var placasArray []string
 		var placasUsadasArray, placasBuenasArray, placasMalasArray []int
 
-		json.Unmarshal([]byte(placa), &placasArray)
-		json.Unmarshal([]byte(placasUsadas), &placasUsadasArray)
-		json.Unmarshal([]byte(placasBuenas), &placasBuenasArray)
-		json.Unmarshal([]byte(placasMalas), &placasMalasArray)
+		placaJSON := "[]"
+		if placa.Valid {
+			placaJSON = placa.String
+		}
+		placasUsadasJSON := "[]"
+		if placasUsadas.Valid {
+			placasUsadasJSON = placasUsadas.String
+		}
+		placasBuenasJSON := "[]"
+		if placasBuenas.Valid {
+			placasBuenasJSON = placasBuenas.String
+		}
+		placasMalasJSON := "[]"
+		if placasMalas.Valid {
+			placasMalasJSON = placasMalas.String
+		}
+
+		json.Unmarshal([]byte(placaJSON), &placasArray)
+		json.Unmarshal([]byte(placasUsadasJSON), &placasUsadasArray)
+		json.Unmarshal([]byte(placasBuenasJSON), &placasBuenasArray)
+		json.Unmarshal([]byte(placasMalasJSON), &placasMalasArray)
 		historial = append(historial, map[string]interface{}{
 			"ID":              id,
 			"ID_PROCESO":      idProceso,
