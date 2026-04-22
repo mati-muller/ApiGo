@@ -447,24 +447,39 @@ func deductInventory(tx *sql.Tx, placa string, quantityToDeduct int) error {
 	}
 	defer rows.Close()
 
+	var inventoryRows []struct {
+		id       int
+		cantidad int
+	}
+
 	for rows.Next() {
 		var inventoryID, currentCantidad int
 		if err := rows.Scan(&inventoryID, &currentCantidad); err != nil {
 			return fmt.Errorf("row scan error: %v", err)
 		}
+		inventoryRows = append(inventoryRows, struct {
+			id       int
+			cantidad int
+		}{id: inventoryID, cantidad: currentCantidad})
+	}
 
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("inventory rows iteration error: %v", err)
+	}
+
+	for _, row := range inventoryRows {
 		if quantityToDeduct <= 0 {
 			break
 		}
 
-		subtractFromCurrent := min(currentCantidad, quantityToDeduct)
+		subtractFromCurrent := min(row.cantidad, quantityToDeduct)
 		_, err := tx.Exec(`
 			UPDATE REPORTES.dbo.inventario
 			SET cantidad_total_usada = cantidad_total_usada + @p1,
 				cantidad = CASE WHEN cantidad - @p1 <= 0 THEN 0 ELSE cantidad - @p1 END,
 				precio_total = (CASE WHEN cantidad - @p1 <= 0 THEN 0 ELSE cantidad - @p1 END) * precio_pp
 			WHERE ID = @p2
-		`, subtractFromCurrent, inventoryID)
+		`, subtractFromCurrent, row.id)
 		if err != nil {
 			return fmt.Errorf("inventory update error: %v", err)
 		}
