@@ -3,6 +3,7 @@ package routes
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -32,6 +33,7 @@ func getReportesDB() (*sql.DB, error) {
 		// Keep a small, stable pool instead of opening and closing a fresh DB handle per request.
 		reportesDB.SetMaxOpenConns(10)
 		reportesDB.SetMaxIdleConns(5)
+		reportesDB.SetConnMaxIdleTime(5 * time.Minute)
 		reportesDB.SetConnMaxLifetime(30 * time.Minute)
 		reportesDBErr = reportesDB.Ping()
 	})
@@ -46,6 +48,9 @@ func Reportes(r *gin.Engine) {
 }
 
 func updateHandler(c *gin.Context) {
+	start := time.Now()
+	log.Printf("[reportes/update] start ip=%s content_length=%d", c.ClientIP(), c.Request.ContentLength)
+
 	var reqBody struct {
 		ID              int      `json:"id"`
 		SubtractValue   int      `json:"subtractValue"`
@@ -65,10 +70,12 @@ func updateHandler(c *gin.Context) {
 
 	// Parse and validate request body
 	if err := c.ShouldBindJSON(&reqBody); err != nil {
-		log.Println("Error parsing request body:", err)
+		log.Printf("[reportes/update] bind error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body", "details": err.Error()})
 		return
 	}
+	log.Printf("[reportes/update] payload id=%d subtract=%d placas=%d addToStock=%v removeFromStock=%v stockCant=%d removeStockCant=%d despunte=%v user=%q",
+		reqBody.ID, reqBody.SubtractValue, len(reqBody.Placas), reqBody.AddToStock, reqBody.RemoveFromStock, reqBody.StockCant, reqBody.RemoveStockCant, reqBody.Despunte, reqBody.User)
 
 	// Validate required fields
 	if reqBody.ID == 0 {
@@ -87,24 +94,29 @@ func updateHandler(c *gin.Context) {
 
 	db, err := getReportesDB()
 	if err != nil {
-		log.Println("Database connection error:", err)
+		log.Printf("[reportes/update] db connection error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database connection error"})
 		return
 	}
 
-	tx, err := db.Begin()
+	tx, err := db.BeginTx(c.Request.Context(), nil)
 	if err != nil {
-		log.Println("Transaction begin error:", err)
+		log.Printf("[reportes/update] begin tx error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Transaction begin error"})
 		return
 	}
+	log.Printf("[reportes/update] tx started")
 
 	defer func() {
 		if p := recover(); p != nil {
-			tx.Rollback()
-			log.Println("Transaction rollback due to panic:", p)
+			_ = tx.Rollback()
+			log.Printf("[reportes/update] panic rollback: %v", p)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Server error"})
+			return
 		}
+
+		// Rollback is safe after a successful commit and avoids leaving the tx open on any early return.
+		_ = tx.Rollback()
 	}()
 
 	// Fetch current data
@@ -115,6 +127,7 @@ func updateHandler(c *gin.Context) {
 		FROM REPORTES.dbo.procesos2
 		WHERE ID = @p1
 	`, reqBody.ID).Scan(&currentPlacas, &currentPlacasUsadas, &currentPlacasBuenas, &currentPlacasMalas, &currentUser, &currentDespunte)
+	log.Printf("[reportes/update] read current row err=%v", err)
 	if err == sql.ErrNoRows {
 		tx.Rollback()
 		c.JSON(http.StatusNotFound, gin.H{"error": "Record not found"})
@@ -161,20 +174,20 @@ func updateHandler(c *gin.Context) {
 	// Parse JSON fields
 	var placas []string
 	if err := json.Unmarshal([]byte(placasStr), &placas); err != nil {
-		log.Println("Error parsing PLACA JSON:", err)
+		log.Printf("[reportes/update] parse PLACA json error: %v", err)
 	}
 	// Use integer slices for counts
 	var placasUsadasArr, placasBuenasArr, placasMalasArr []int
 	if err := json.Unmarshal([]byte(placasUsadasStr), &placasUsadasArr); err != nil {
-		log.Println("Error parsing PLACAS_USADAS JSON:", err)
+		log.Printf("[reportes/update] parse PLACAS_USADAS json error: %v", err)
 		placasUsadasArr = make([]int, len(placas))
 	}
 	if err := json.Unmarshal([]byte(placasBuenasStr), &placasBuenasArr); err != nil {
-		log.Println("Error parsing PLACAS_BUENAS JSON:", err)
+		log.Printf("[reportes/update] parse PLACAS_BUENAS json error: %v", err)
 		placasBuenasArr = make([]int, len(placas))
 	}
 	if err := json.Unmarshal([]byte(placasMalasStr), &placasMalasArr); err != nil {
-		log.Println("Error parsing PLACAS_MALAS JSON:", err)
+		log.Printf("[reportes/update] parse PLACAS_MALAS json error: %v", err)
 		placasMalasArr = make([]int, len(placas))
 	}
 
@@ -230,10 +243,11 @@ func updateHandler(c *gin.Context) {
 		reqBody.TiempoTotal, userStr, reqBody.StockCant, reqBody.NumeroPersonas, reqBody.ID, finalDespunte)
 	if err != nil {
 		tx.Rollback()
-		log.Println("Update error:", err)
+		log.Printf("[reportes/update] procesos2 update error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Update error"})
 		return
 	}
+	log.Printf("[reportes/update] procesos2 updated")
 
 	// Insert data into HISTORIAL table
 	placasBytes, _ = json.Marshal(reqBody.Placas)
@@ -257,22 +271,25 @@ func updateHandler(c *gin.Context) {
 		reqBody.NumeroPersonas, "", reqBody.User, reqBody.StockCant, reqBody.Despunte)
 	if err != nil {
 		tx.Rollback()
-		log.Println("Insert into HISTORIAL error:", err)
+		log.Printf("[reportes/update] historial insert error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Insert into HISTORIAL error"})
 		return
 	}
+	log.Printf("[reportes/update] historial inserted")
 
 	// Handle Add to Stock
 	if reqBody.AddToStock {
 		if reqBody.StockCant <= 0 {
 			tx.Rollback()
+			log.Printf("[reportes/update] invalid stockCant for add: %d", reqBody.StockCant)
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid stock quantity to add."})
 			return
 		}
 
+		log.Printf("[reportes/update] calling updateStock add quantity=%d", reqBody.StockCant)
 		if err := updateStock(tx, reqBody.ID, reqBody.StockCant, "Add"); err != nil {
 			tx.Rollback()
-			log.Println("Add to stock error:", err)
+			log.Printf("[reportes/update] add to stock error: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Add to stock error"})
 			return
 		}
@@ -282,13 +299,15 @@ func updateHandler(c *gin.Context) {
 	if reqBody.RemoveFromStock {
 		if reqBody.RemoveStockCant <= 0 {
 			tx.Rollback()
+			log.Printf("[reportes/update] invalid stockCant for remove: %d", reqBody.RemoveStockCant)
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid stock quantity to remove."})
 			return
 		}
 
+		log.Printf("[reportes/update] calling updateStock remove quantity=%d", reqBody.RemoveStockCant)
 		if err := updateStock(tx, reqBody.ID, reqBody.RemoveStockCant, "Remove"); err != nil {
 			tx.Rollback()
-			log.Println("Remove from stock error:", err)
+			log.Printf("[reportes/update] remove from stock error: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Remove from stock error"})
 			return
 		}
@@ -296,20 +315,27 @@ func updateHandler(c *gin.Context) {
 
 	// Deduct inventory for each placa
 	for i, placa := range reqBody.Placas {
+		log.Printf("[reportes/update] deduct inventory placa=%q qty=%d", placa, reqBody.PlacasUsadas[i])
 		if err := deductInventory(tx, placa, reqBody.PlacasUsadas[i]); err != nil {
 			tx.Rollback()
-			log.Println("Inventory deduction error:", err)
+			log.Printf("[reportes/update] inventory deduction error: %v", err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 	}
 
 	// Commit transaction
+	log.Printf("[reportes/update] committing tx")
 	if err := tx.Commit(); err != nil {
-		log.Println("Transaction commit error:", err)
+		if errors.Is(err, sql.ErrTxDone) {
+			log.Printf("[reportes/update] commit skipped because tx already finished: %v", err)
+		} else {
+			log.Printf("[reportes/update] commit error: %v", err)
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Transaction commit error"})
 		return
 	}
+	log.Printf("[reportes/update] success duration=%s", time.Since(start))
 
 	c.JSON(http.StatusOK, gin.H{"message": "Record updated successfully"})
 }
