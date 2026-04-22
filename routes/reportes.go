@@ -9,10 +9,35 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	_ "github.com/denisenkom/go-mssqldb"
 	"github.com/gin-gonic/gin"
 )
+
+var (
+	reportesDB     *sql.DB
+	reportesDBOnce sync.Once
+	reportesDBErr  error
+)
+
+func getReportesDB() (*sql.DB, error) {
+	reportesDBOnce.Do(func() {
+		reportesDB, reportesDBErr = sql.Open("sqlserver", "Server="+os.Getenv("SQL_SERVER")+"\\"+os.Getenv("SQL_INSTANCE")+";Database="+os.Getenv("SQL_DATABASE2")+";User Id="+os.Getenv("SQL_USER")+";Password="+os.Getenv("SQL_PASSWORD")+";Encrypt=disable")
+		if reportesDBErr != nil {
+			return
+		}
+
+		// Keep a small, stable pool instead of opening and closing a fresh DB handle per request.
+		reportesDB.SetMaxOpenConns(10)
+		reportesDB.SetMaxIdleConns(5)
+		reportesDB.SetConnMaxLifetime(30 * time.Minute)
+		reportesDBErr = reportesDB.Ping()
+	})
+
+	return reportesDB, reportesDBErr
+}
 
 func Reportes(r *gin.Engine) {
 	r.POST("/reportes/update", updateHandler)
@@ -60,14 +85,12 @@ func updateHandler(c *gin.Context) {
 		return
 	}
 
-	// Use environment variables for database connection
-	db, err := sql.Open("sqlserver", "Server="+os.Getenv("SQL_SERVER")+"\\"+os.Getenv("SQL_INSTANCE")+";Database="+os.Getenv("SQL_DATABASE2")+";User Id="+os.Getenv("SQL_USER")+";Password="+os.Getenv("SQL_PASSWORD")+";Encrypt=disable")
+	db, err := getReportesDB()
 	if err != nil {
 		log.Println("Database connection error:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database connection error"})
 		return
 	}
-	defer db.Close()
 
 	tx, err := db.Begin()
 	if err != nil {
@@ -431,14 +454,12 @@ func deductInventory(tx *sql.Tx, placa string, quantityToDeduct int) error {
 }
 
 func getHistorialHandler(c *gin.Context) {
-	// Use environment variables for database connection
-	db, err := sql.Open("sqlserver", "Server="+os.Getenv("SQL_SERVER")+"\\"+os.Getenv("SQL_INSTANCE")+";Database="+os.Getenv("SQL_DATABASE2")+";User Id="+os.Getenv("SQL_USER")+";Password="+os.Getenv("SQL_PASSWORD")+";Encrypt=disable")
+	db, err := getReportesDB()
 	if err != nil {
 		log.Println("Database connection error:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database connection error"})
 		return
 	}
-	defer db.Close()
 	// Get query parameters for date filtering
 	fechaInicio := c.Query("fecha_inicio")
 	fechaFin := c.Query("fecha_fin")
@@ -479,10 +500,10 @@ func getHistorialHandler(c *gin.Context) {
 			id, idProceso, cantidad, numeroPersonas, stockCant, nvcant, nvnumero int
 			placa, placasUsadas, placasBuenas, placasMalas                       sql.NullString
 			fechaEntrega, nomaux, detprod, proceso                               string
-			stock, user                                                         sql.NullString
-			tiempoTotal                                                         sql.NullFloat64
-			despunte                                                            bool
-			fecha                                                               sql.NullString
+			stock, user                                                          sql.NullString
+			tiempoTotal                                                          sql.NullFloat64
+			despunte                                                             bool
+			fecha                                                                sql.NullString
 		)
 		if err := rows.Scan(&id, &idProceso, &cantidad, &placa, &placasUsadas, &placasBuenas, &placasMalas, &tiempoTotal, &numeroPersonas, &stock, &user, &stockCant, &despunte, &nvnumero, &fechaEntrega, &nomaux, &nvcant, &detprod, &proceso, &fecha); err != nil {
 			log.Println("Error scanning row:", err)
@@ -588,13 +609,12 @@ func unlockProcess(c *gin.Context) {
 		return
 	}
 
-	db, err := sql.Open("sqlserver", "Server="+os.Getenv("SQL_SERVER")+"\\"+os.Getenv("SQL_INSTANCE")+";Database="+os.Getenv("SQL_DATABASE2")+";User Id="+os.Getenv("SQL_USER")+";Password="+os.Getenv("SQL_PASSWORD")+";Encrypt=disable")
+	db, err := getReportesDB()
 	if err != nil {
 		log.Printf("Failed to connect to database: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database connection error"})
 		return
 	}
-	defer db.Close()
 
 	// Verificar si la columna existe
 	var columnExists int
