@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
+	"os"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/exp/slices"
@@ -29,7 +31,7 @@ func SetupProcesosRoutes(r *gin.Engine) {
 	r.GET("/procesos/pendientes-otro", getPendientesOtro)
 	r.GET("/procesos/nv", getNV)
 	r.GET("/procesosapp/encolado", getEncoladoProcesos)
-	r.PUT("/procesos/fecha-entrega", updateFechaEntrega)
+	r.PUT("/procesos/fecha-entrega", updateFechaEntregaByNV)
 }
 
 // queryDatabase is imported from procapp.go
@@ -343,4 +345,59 @@ func getNV(c *gin.Context) {
 	})
 
 	c.JSON(http.StatusOK, result)
+}
+
+func updateFechaEntregaByNV(c *gin.Context) {
+	var reqBody struct {
+		NVNUMERO     string `json:"NVNUMERO" binding:"required"`
+		FechaEntrega string `json:"FECHA_ENTREGA" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&reqBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request", "details": err.Error()})
+		return
+	}
+
+	if strings.TrimSpace(reqBody.NVNUMERO) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "NVNUMERO is required"})
+		return
+	}
+	if strings.TrimSpace(reqBody.FechaEntrega) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "FECHA_ENTREGA is required"})
+		return
+	}
+
+	db, err := sql.Open("sqlserver", "Server="+os.Getenv("SQL_SERVER")+"\\"+os.Getenv("SQL_INSTANCE")+";Database="+os.Getenv("SQL_DATABASE2")+";User Id="+os.Getenv("SQL_USER")+";Password="+os.Getenv("SQL_PASSWORD")+";Encrypt=disable")
+	if err != nil {
+		log.Printf("Failed to connect to database: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database connection error"})
+		return
+	}
+	defer db.Close()
+
+	updateQuery := `UPDATE procesos SET FECHA_ENTREGA = @fecha WHERE NVNUMERO = @nvnumero`
+	result, err := db.Exec(updateQuery, sql.Named("fecha", reqBody.FechaEntrega), sql.Named("nvnumero", reqBody.NVNUMERO))
+	if err != nil {
+		log.Printf("Error updating FECHA_ENTREGA: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating delivery date"})
+		return
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		log.Printf("Error reading rows affected: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error confirming update"})
+		return
+	}
+
+	if rowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Process not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":       "Fecha de entrega actualizada",
+		"NVNUMERO":      reqBody.NVNUMERO,
+		"FECHA_ENTREGA": reqBody.FechaEntrega,
+	})
 }
