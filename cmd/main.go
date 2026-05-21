@@ -76,6 +76,7 @@ func main() {
 
 	// Setup routes
 	routes.SetupPostRoutes(r)
+	routes.SetupAlertsRoutes(r)
 	routes.SetupUserRoutes(r)
 	routes.SetupProcesosRoutes(r)
 	routes.SetupInventarioRoutes(r)

@@ -29,6 +29,7 @@ func SetupProcesosRoutes(r *gin.Engine) {
 	r.GET("/procesos/pendientes-otro", getPendientesOtro)
 	r.GET("/procesos/nv", getNV)
 	r.GET("/procesosapp/encolado", getEncoladoProcesos)
+	r.PUT("/procesos/fecha-entrega", updateFechaEntrega)
 }
 
 // queryDatabase is imported from procapp.go
@@ -230,6 +231,7 @@ func getNV(c *gin.Context) {
 
 	query := `
 		SELECT 
+			p.ID,
 			p.NVNUMERO,
 			p.DetProd,
 			p.NOMAUX,
@@ -266,6 +268,7 @@ func getNV(c *gin.Context) {
 	defer rows.Close()
 
 	type Proceso struct {
+		ID                int    `json:"ID"`
 		PROCESO           string `json:"PROCESO"`
 		ESTADO_PROC       string `json:"ESTADO_PROC"`
 		NVCANT            int    `json:"NVCANT"`
@@ -285,10 +288,11 @@ func getNV(c *gin.Context) {
 	groupedData := map[string]*NV{}
 
 	for rows.Next() {
+		var id int
 		var nvnumero, detprod, nomaux, proceso, estadoProc, fechaEntrega string
 		var cantprod, cantAProd, cantidadProducida int
 
-		if err := rows.Scan(&nvnumero, &detprod, &nomaux, &proceso, &estadoProc, &cantprod, &cantAProd, &fechaEntrega, &cantidadProducida); err != nil {
+		if err := rows.Scan(&id, &nvnumero, &detprod, &nomaux, &proceso, &estadoProc, &cantprod, &cantAProd, &fechaEntrega, &cantidadProducida); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
@@ -306,6 +310,7 @@ func getNV(c *gin.Context) {
 		}
 
 		groupedData[key].Procesos = append(groupedData[key].Procesos, Proceso{
+			ID:                id,
 			PROCESO:           proceso,
 			ESTADO_PROC:       estadoProc,
 			NVCANT:            cantprod,
