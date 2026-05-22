@@ -18,7 +18,8 @@ func SetupInventarioRoutes(r *gin.Engine) {
 	r.GET("/inventario/placas", getPlacasData)
 	r.GET("/inventario/all", getAllInventario)
 	r.POST("/inventario/addplaca", addPlacas)
-	r.POST("/inventario/add", addPlacas)
+	r.POST("/inventario/addproducto", addProducto)
+	r.POST("/inventario/add", addProducto)
 	r.GET("/inventario/oc", getAllOC)
 	r.GET("/inventario/oc/:oc", getOCItems)
 	r.PUT("/inventario/:id", updateInventarioItem)
@@ -146,49 +147,15 @@ func getPlacasData(c *gin.Context) {
 func addPlacas(c *gin.Context) {
 	// Parse input JSON
 	var input struct {
-		Tipo    string  `json:"tipo"`
-		Placa   string  `json:"placa"`
-		Nombre  string  `json:"nombre"`
-		Largo   string  `json:"largo"`
-		Ancho   string  `json:"ancho"`
-		Celda   string  `json:"celda"`
+		Placa       string  `json:"placa"`
+		Fecha       string  `json:"fecha"`
 		PrecioPP float64 `json:"preciopp"`
+		PrecioTotal float64 `json:"precio_total"`
 		Cantidad int     `json:"cantidad"`
-		OC      string  `json:"oc"`
+		OC          string  `json:"oc"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input", "details": err.Error()})
-		return
-	}
-
-	itemType := strings.ToUpper(strings.TrimSpace(input.Tipo))
-	if itemType == "" {
-		itemType = "PLACA"
-	}
-
-	var inventoryName string
-	switch itemType {
-	case "PLACA":
-		largo := strings.TrimSpace(input.Largo)
-		ancho := strings.TrimSpace(input.Ancho)
-		celda := strings.TrimSpace(input.Celda)
-		if largo == "" || ancho == "" || celda == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Missing placa fields", "details": "largo, ancho y celda son requeridos"})
-			return
-		}
-		inventoryName = strings.TrimSpace(fmt.Sprintf("PLACA %s*%s %s", largo, ancho, celda))
-	case "PRODUCTO":
-		nombre := strings.TrimSpace(input.Nombre)
-		if nombre == "" {
-			nombre = strings.TrimSpace(input.Placa)
-		}
-		if nombre == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Missing product name", "details": "nombre es requerido para productos"})
-			return
-		}
-		inventoryName = strings.TrimSpace(nombre)
-	default:
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid tipo", "details": "tipo debe ser PLACA o PRODUCTO"})
 		return
 	}
 
@@ -204,7 +171,6 @@ func addPlacas(c *gin.Context) {
 	// Get current date in Chile timezone (CLT/CLST)
 	loc, _ := time.LoadLocation("America/Santiago")
 	currentDate := time.Now().In(loc).Format("02/01/2006") // dd/mm/yyyy format
-	precioTotal := input.PrecioPP * float64(input.Cantidad)
 
 	// Establish database connection
 	db, err := sql.Open("sqlserver", "Server="+os.Getenv("SQL_SERVER")+"\\"+os.Getenv("SQL_INSTANCE")+";Database="+os.Getenv("SQL_DATABASE2")+";User="+os.Getenv("SQL_USER")+";Password="+os.Getenv("SQL_PASSWORD")+";Encrypt=disable")
@@ -217,21 +183,82 @@ func addPlacas(c *gin.Context) {
 	// Insert data into the database
 	_, err = db.Exec(
 		"INSERT INTO inventario (placa, fecha_compra, precio_pp, precio_total, cantidad, oc) VALUES (@p1, @p2, @p3, @p4, @p5, @p6)",
-		inventoryName, currentDate, input.PrecioPP, precioTotal, input.Cantidad, strings.TrimSpace(input.OC),
+		input.Placa, currentDate, input.PrecioPP, input.PrecioTotal, input.Cantidad, input.OC,
 	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert data", "details": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
-		"message":       "Data inserted successfully",
-		"placa":         inventoryName,
-		"fecha_compra":  currentDate,
-		"precio_pp":     input.PrecioPP,
-		"precio_total":   precioTotal,
-		"cantidad":      input.Cantidad,
-		"oc":            strings.TrimSpace(input.OC),
-		"tipo":          itemType,
+		"message":      "Data inserted successfully",
+		"placa":        input.Placa,
+		"fecha_compra": currentDate,
+		"precio_pp":    input.PrecioPP,
+		"precio_total": input.PrecioTotal,
+		"cantidad":     input.Cantidad,
+		"oc":           input.OC,
+	})
+}
+
+func addProducto(c *gin.Context) {
+	var input struct {
+		Nombre   string  `json:"nombre"`
+		Placa    string  `json:"placa"`
+		PrecioPP float64 `json:"preciopp"`
+		Cantidad int     `json:"cantidad"`
+		OC       string  `json:"oc"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input", "details": err.Error()})
+		return
+	}
+
+	nombre := strings.TrimSpace(input.Nombre)
+	if nombre == "" {
+		nombre = strings.TrimSpace(input.Placa)
+	}
+	if nombre == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing product name", "details": "nombre es requerido para productos"})
+		return
+	}
+	if input.Cantidad <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid cantidad", "details": "cantidad debe ser mayor a 0"})
+		return
+	}
+	if input.PrecioPP < 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid precio", "details": "precio_pp no puede ser negativo"})
+		return
+	}
+
+	loc, _ := time.LoadLocation("America/Santiago")
+	currentDate := time.Now().In(loc).Format("02/01/2006")
+	precioTotal := input.PrecioPP * float64(input.Cantidad)
+
+	db, err := sql.Open("sqlserver", "Server="+os.Getenv("SQL_SERVER")+"\\"+os.Getenv("SQL_INSTANCE")+";Database="+os.Getenv("SQL_DATABASE2")+";User="+os.Getenv("SQL_USER")+";Password="+os.Getenv("SQL_PASSWORD")+";Encrypt=disable")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to connect to database"})
+		return
+	}
+	defer db.Close()
+
+	_, err = db.Exec(
+		"INSERT INTO inventario (placa, fecha_compra, precio_pp, precio_total, cantidad, oc) VALUES (@p1, @p2, @p3, @p4, @p5, @p6)",
+		nombre, currentDate, input.PrecioPP, precioTotal, input.Cantidad, strings.TrimSpace(input.OC),
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert data", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":      "Data inserted successfully",
+		"placa":        nombre,
+		"fecha_compra": currentDate,
+		"precio_pp":    input.PrecioPP,
+		"precio_total": precioTotal,
+		"cantidad":     input.Cantidad,
+		"oc":           strings.TrimSpace(input.OC),
+		"tipo":         "PRODUCTO",
 	})
 }
 
