@@ -149,15 +149,17 @@ func addPlacas(c *gin.Context) {
 	var input struct {
 		Placa       string  `json:"placa"`
 		Fecha       string  `json:"fecha"`
-		PrecioPP float64 `json:"preciopp"`
+		PrecioPP    float64 `json:"preciopp"`
 		PrecioTotal float64 `json:"precio_total"`
-		Cantidad int     `json:"cantidad"`
+		Cantidad    int     `json:"cantidad"`
 		OC          string  `json:"oc"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input", "details": err.Error()})
 		return
 	}
+
+	input.Placa = strings.ToUpper(strings.TrimSpace(input.Placa))
 
 	if input.Cantidad <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid cantidad", "details": "cantidad debe ser mayor a 0"})
