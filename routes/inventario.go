@@ -24,6 +24,7 @@ func SetupInventarioRoutes(r *gin.Engine) {
 	r.GET("/inventario/oc/:oc", getOCItems)
 	r.PUT("/inventario/:id", updateInventarioItem)
 	r.GET("/inventario/export/csv", exportInventarioCSV)
+	r.POST("/inventario/sustract", sustract)
 }
 
 func getInventarioData(c *gin.Context) {
@@ -550,4 +551,129 @@ func exportInventarioCSV(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error reading rows", "details": err.Error()})
 		return
 	}
+}
+
+func sustract(c *gin.Context) {
+	var input struct {
+		Placa    string `json:"placa"`
+		Cantidad int    `json:"cantidad"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input", "details": err.Error()})
+		return
+	}
+
+	input.Placa = strings.ToUpper(strings.TrimSpace(input.Placa))
+	if input.Placa == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid placa", "details": "placa es requerida"})
+		return
+	}
+	if input.Cantidad <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid cantidad", "details": "cantidad debe ser mayor a 0"})
+		return
+	}
+
+	db, err := sql.Open("sqlserver", "Server="+os.Getenv("SQL_SERVER")+"\\"+os.Getenv("SQL_INSTANCE")+";Database="+os.Getenv("SQL_DATABASE2")+";User="+os.Getenv("SQL_USER")+";Password="+os.Getenv("SQL_PASSWORD")+";Encrypt=disable")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to connect to database"})
+		return
+	}
+	defer db.Close()
+
+	tx, err := db.Begin()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to start transaction", "details": err.Error()})
+		return
+	}
+	defer tx.Rollback()
+
+	rows, err := tx.Query(
+		`SELECT ID, ISNULL(cantidad, 0), ISNULL(precio_pp, 0)
+		 FROM inventario
+		 WHERE placa = @p1 AND ISNULL(cantidad, 0) > 0
+		 ORDER BY TRY_CONVERT(date, fecha_compra, 103) ASC, ID ASC`,
+		input.Placa,
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read inventory", "details": err.Error()})
+		return
+	}
+	defer rows.Close()
+
+	type inventoryRow struct {
+		id       int
+		cantidad int
+		precioPP float64
+	}
+
+	var inventoryRows []inventoryRow
+	totalAvailable := 0
+
+	for rows.Next() {
+		var row inventoryRow
+		if err := rows.Scan(&row.id, &row.cantidad, &row.precioPP); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to scan inventory row", "details": err.Error()})
+			return
+		}
+		inventoryRows = append(inventoryRows, row)
+		totalAvailable += row.cantidad
+	}
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to iterate inventory rows", "details": err.Error()})
+		return
+	}
+
+	if totalAvailable < input.Cantidad {
+		c.JSON(http.StatusConflict, gin.H{
+			"error":     "Not enough inventory",
+			"placa":     input.Placa,
+			"requested": input.Cantidad,
+			"available": totalAvailable,
+			"missing":   input.Cantidad - totalAvailable,
+		})
+		return
+	}
+
+	remaining := input.Cantidad
+	rowsUpdated := 0
+	for _, row := range inventoryRows {
+		if remaining <= 0 {
+			break
+		}
+
+		subtractAmount := row.cantidad
+		if subtractAmount > remaining {
+			subtractAmount = remaining
+		}
+
+		newCantidad := row.cantidad - subtractAmount
+		newPrecioTotal := float64(newCantidad) * row.precioPP
+
+		_, err := tx.Exec(
+			`UPDATE inventario
+			 SET cantidad = @p1,
+			     precio_total = @p3
+			 WHERE ID = @p4`,
+			newCantidad, subtractAmount, newPrecioTotal, row.id,
+		)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update inventory", "details": err.Error()})
+			return
+		}
+
+		remaining -= subtractAmount
+		rowsUpdated++
+	}
+
+	if err := tx.Commit(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to commit transaction", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":       "Inventory deducted successfully",
+		"placa":         input.Placa,
+		"cantidad":      input.Cantidad,
+		"rows_affected": rowsUpdated,
+	})
 }
